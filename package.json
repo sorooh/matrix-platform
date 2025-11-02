@@ -1,0 +1,8 @@
+{
+  "name": "matrix-platform-root-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node ./scripts/smoke-root.js"
+  }
+}
