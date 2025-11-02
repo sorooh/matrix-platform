@@ -14,6 +14,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Basic diagnostics
+        run: |
+          echo "--- git version ---"; git --version || true
+          echo "--- pwd ---"; pwd
+          echo "--- ls root ---"; ls -la
+          echo "--- find nested .git ---"; find . -type d -name .git -print || true
+
+      - name: Show matrix-scaffold overview (if exists)
+        run: |
+          if [ -d matrix-scaffold ]; then
+            echo "matrix-scaffold exists:"; ls -la matrix-scaffold | sed -n '1,200p'
+            if [ -f matrix-scaffold/package.json ]; then
+              echo '--- package.json (deps) ---'; cat matrix-scaffold/package.json | sed -n '1,200p'
+            fi
+          else
+            echo "matrix-scaffold not present"
+          fi
+
+      - name: Remove nested .git inside matrix-scaffold
+        run: |
+          if [ -d matrix-scaffold ]; then
+            echo 'Removing nested .git dirs under matrix-scaffold (if any)';
+            find matrix-scaffold -type d -name .git -prune -exec rm -rf {} + || true;
+            echo 'Done';
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
