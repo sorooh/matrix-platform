@@ -49,7 +49,11 @@ jobs:
           set -euo pipefail
           echo "-> Installing root (.)"
           if [ -f package.json ]; then
-            npm ci 2>&1 | tee root-npm-ci.log || (echo "npm ci failed for root, printing log:"; cat root-npm-ci.log; exit 254)
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee root-npm-ci.log || (echo "npm ci failed for root, printing log:"; cat root-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee root-npm-install.log || (echo "npm install failed for root, printing log:"; cat root-npm-install.log; exit 254)
+            fi
           else
             echo "no package.json at root, skipping"
           fi
@@ -60,7 +64,11 @@ jobs:
           set -euo pipefail
           echo "-> Installing client (./client)"
           if [ -f package.json ]; then
-            npm ci 2>&1 | tee client-npm-ci.log || (echo "npm ci failed for client, printing log:"; cat client-npm-ci.log; exit 254)
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee client-npm-ci.log || (echo "npm ci failed for client, printing log:"; cat client-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee client-npm-install.log || (echo "npm install failed for client, printing log:"; cat client-npm-install.log; exit 254)
+            fi
           else
             echo "no package.json in ./client, skipping"
           fi
@@ -71,7 +79,11 @@ jobs:
           set -euo pipefail
           echo "-> Installing server (./server)"
           if [ -f package.json ]; then
-            npm ci 2>&1 | tee server-npm-ci.log || (echo "npm ci failed for server, printing log:"; cat server-npm-ci.log; exit 254)
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee server-npm-ci.log || (echo "npm ci failed for server, printing log:"; cat server-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee server-npm-install.log || (echo "npm install failed for server, printing log:"; cat server-npm-install.log; exit 254)
+            fi
           else
             echo "no package.json in ./server, skipping"
           fi
