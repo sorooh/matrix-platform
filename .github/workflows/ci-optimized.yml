@@ -128,3 +128,35 @@ jobs:
             server/*.log
             *.log
           if-no-files-found: warn
+
+      - name: Analyze logs and comment on PR (automated triage)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Scanning workspace for error patterns..."
+          patterns='error|failed|exception|traceback|panic'
+          # Find matching lines across logs (if any)
+          found=$(grep -Ein --no-messages "$patterns" . || true)
+          if [ -z "$found" ]; then
+            echo "No error patterns found in logs."
+            exit 0
+          fi
+          echo "Error candidates found; saving excerpt..."
+          echo "$found" > errors.txt
+          # Limit comment size
+          summary=$(head -n 500 errors.txt || true)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "Posting comment to PR #$PR_NUMBER"
+          python - <<'PY'
+import os,sys,json,urllib.request
+repo=os.environ['GITHUB_REPOSITORY']
+pr=os.environ['PR_NUMBER']
+token=os.environ['GITHUB_TOKEN']
+summary=open('errors.txt','r',encoding='utf-8').read()
+body = "Automated CI analysis detected potential issues:\n\n```\n" + summary[:12000] + "\n```"
+data=json.dumps({"body": body})
+req=urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{pr}/comments", data=data.encode('utf-8'), headers={"Authorization":f"Bearer {token}","Content-Type":"application/json","User-Agent":"ci-triage"})
+resp=urllib.request.urlopen(req)
+print(resp.read().decode())
+PY
