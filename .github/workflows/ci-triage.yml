@@ -44,3 +44,13 @@ jobs:
         if: always()
         run: |
           echo "Found issues; uploaded errors.txt as 'triage-errors' artifact." >> $GITHUB_STEP_SUMMARY
+
+      - name: Optionally post triage comment (requires TRIAGE_POST_TOKEN secret)
+        if: ${{ secrets.TRIAGE_POST_TOKEN != '' }}
+        run: |
+          echo "Posting triage comment using TRIAGE_POST_TOKEN..."
+          node ./.github/scripts/post-triage-comment.js
+        env:
+          TRIAGE_POST_TOKEN: ${{ secrets.TRIAGE_POST_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
