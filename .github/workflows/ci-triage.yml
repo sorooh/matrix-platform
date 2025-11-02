@@ -1,0 +1,48 @@
+name: CI - automated triage
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan logs and workspace for error patterns
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Scanning repository for error patterns..."
+          patterns='error|failed|exception|traceback|panic'
+          # Search repository files (limit to common logs and js files)
+          found=$(grep -Ein --no-messages -R --exclude-dir=.git --exclude=*.png --exclude=*.jpg --exclude=*.zip "$patterns" . || true)
+          if [ -z "$found" ]; then
+            echo "No error patterns found."
+            exit 0
+          fi
+          echo "$found" > errors.txt
+          echo "Found issues; posting a comment to PR #${PR_NUMBER}"
+      - name: Post comment to PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.existsSync('errors.txt') ? fs.readFileSync('errors.txt','utf8').slice(0,12000) : '';
+            const body = `Automated CI analysis detected potential issues:\n\n```\n${summary}\n``` `;
+            await github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(process.env.PR_NUMBER, 10),
+              body
+            });
