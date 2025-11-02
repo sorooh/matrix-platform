@@ -33,23 +33,14 @@ jobs:
           fi
           echo "$found" > errors.txt
           echo "Found issues; posting a comment to PR #${PR_NUMBER}"
-      - name: Post comment to PR
-        uses: actions/github-script@v6
+      - name: Upload triage errors as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            const fs = require('fs');
-            const summary = fs.existsSync('errors.txt') ? fs.readFileSync('errors.txt','utf8').slice(0,12000) : '';
-            const body = 'Automated CI analysis detected potential issues:\n\n```\n' + summary + '\n```';
-            // Read PR number from the action context to avoid relying on external env propagation
-            const issue_number = (context.issue && context.issue.number) || (context.payload && context.payload.pull_request && context.payload.pull_request.number);
-            if (!issue_number) {
-              core = require('@actions/core');
-              core.warning('PR number not available in context; skipping comment.');
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_number,
-                body: body
-              });
-            }
+          name: triage-errors
+          path: errors.txt
+
+      - name: Add workflow summary
+        if: always()
+        run: |
+          echo "Found issues; uploaded errors.txt as 'triage-errors' artifact." >> $GITHUB_STEP_SUMMARY
