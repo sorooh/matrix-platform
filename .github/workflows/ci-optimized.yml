@@ -117,8 +117,14 @@ jobs:
           name: ci-diagnostics-logs
           path: |
             root-npm-ci.log
+            root-npm-install.log
             client/client-npm-ci.log
+            client/client-npm-install.log
             server/server-npm-ci.log
+            server/server-npm-install.log
             client/client-test.log
             server/server-test.log
+            client/*.log
+            server/*.log
             *.log
+          if-no-files-found: warn
