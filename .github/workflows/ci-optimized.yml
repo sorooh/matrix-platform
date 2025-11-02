@@ -1,4 +1,4 @@
-name: CI - optimized
+name: CI - optimized (diagnostics)
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    name: Install & Test (root / client / server)
+    name: Install & Test (root / client / server) - diagnostic
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,23 +31,58 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install root dependencies
+      - name: Environment diagnostics
+        run: |
+          echo "== ENV DIAGNOSTICS =="
+          uname -a || true
+          echo "User: $(whoami || true)"
+          echo "Disk usage:"
+          df -h || true
+          echo "Memory:"
+          free -h || true
+          node --version || true
+          npm --version || true
+
+      - name: Install root dependencies (with logs)
         working-directory: .
-        run: npm ci
+        run: |
+          set -euo pipefail
+          echo "-> Installing root (.)"
+          if [ -f package.json ]; then
+            npm ci 2>&1 | tee root-npm-ci.log || (echo "npm ci failed for root, printing log:"; cat root-npm-ci.log; exit 254)
+          else
+            echo "no package.json at root, skipping"
+          fi
 
-      - name: Install client dependencies
+      - name: Install client dependencies (with logs)
         working-directory: ./client
-        run: npm ci
+        run: |
+          set -euo pipefail
+          echo "-> Installing client (./client)"
+          if [ -f package.json ]; then
+            npm ci 2>&1 | tee client-npm-ci.log || (echo "npm ci failed for client, printing log:"; cat client-npm-ci.log; exit 254)
+          else
+            echo "no package.json in ./client, skipping"
+          fi
 
-      - name: Install server dependencies
+      - name: Install server dependencies (with logs)
         working-directory: ./server
-        run: npm ci
+        run: |
+          set -euo pipefail
+          echo "-> Installing server (./server)"
+          if [ -f package.json ]; then
+            npm ci 2>&1 | tee server-npm-ci.log || (echo "npm ci failed for server, printing log:"; cat server-npm-ci.log; exit 254)
+          else
+            echo "no package.json in ./server, skipping"
+          fi
 
       - name: Run server tests
         working-directory: ./server
         run: |
+          set -euo pipefail
           if [ -f package.json ]; then
-            npm test --if-present
+            echo "-> Running server tests"
+            npm test --if-present 2>&1 | tee server-test.log || (echo "server tests failed, see server-test.log"; cat server-test.log; exit 1)
           else
             echo "no server package.json, skipping server tests"
           fi
@@ -55,18 +90,23 @@ jobs:
       - name: Run client tests
         working-directory: ./client
         run: |
+          set -euo pipefail
           if [ -f package.json ]; then
-            npm test --if-present
+            echo "-> Running client tests"
+            npm test --if-present 2>&1 | tee client-test.log || (echo "client tests failed, see client-test.log"; cat client-test.log; exit 1)
           else
             echo "no client package.json, skipping client tests"
           fi
 
-      - name: Upload test results (optional)
+      - name: Upload diagnostic logs (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs
+          name: ci-diagnostics-logs
           path: |
-            server/test-results/**/*
-            client/test-results/**/*
-            npm-debug.log
+            root-npm-ci.log
+            client/client-npm-ci.log
+            server/server-npm-ci.log
+            client/client-test.log
+            server/server-test.log
+            *.log
