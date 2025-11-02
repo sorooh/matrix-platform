@@ -40,10 +40,16 @@ jobs:
             const fs = require('fs');
             const summary = fs.existsSync('errors.txt') ? fs.readFileSync('errors.txt','utf8').slice(0,12000) : '';
             const body = 'Automated CI analysis detected potential issues:\n\n```\n' + summary + '\n```';
-            // Use the `rest` API surface on the provided Octokit client
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt(process.env.PR_NUMBER, 10),
-              body: body
-            });
+            // Read PR number from the action context to avoid relying on external env propagation
+            const issue_number = (context.issue && context.issue.number) || (context.payload && context.payload.pull_request && context.payload.pull_request.number);
+            if (!issue_number) {
+              core = require('@actions/core');
+              core.warning('PR number not available in context; skipping comment.');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                body: body
+              });
+            }
