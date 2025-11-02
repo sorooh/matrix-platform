@@ -57,7 +57,7 @@ jobs:
         if: ${{ env.TRIAGE_POST_TOKEN != '' }}
         run: |
           echo "Posting triage comment using TRIAGE_POST_TOKEN..."
-          node ./.github/scripts/post-triage-comment.js
+          node ./.github/scripts/post-triage-comment-v2.js
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
