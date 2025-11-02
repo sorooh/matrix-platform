@@ -40,7 +40,8 @@ jobs:
             const fs = require('fs');
             const summary = fs.existsSync('errors.txt') ? fs.readFileSync('errors.txt','utf8').slice(0,12000) : '';
             const body = 'Automated CI analysis detected potential issues:\n\n```\n' + summary + '\n```';
-            await github.issues.createComment({
+            // Use the `rest` API surface on the provided Octokit client
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: parseInt(process.env.PR_NUMBER, 10),
