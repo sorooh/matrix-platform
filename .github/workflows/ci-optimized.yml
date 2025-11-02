@@ -1,30 +1,72 @@
-name: CI Optimized
+name: CI - optimized
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "**" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Build & Test (Node ${{ matrix.node-version }})
+    name: Install & Test (root / client / server)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [20]
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        working-directory: .
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Install client dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Run server tests
+        working-directory: ./server
+        run: |
+          if [ -f package.json ]; then
+            npm test --if-present
+          else
+            echo "no server package.json, skipping server tests"
+          fi
+
+      - name: Run client tests
+        working-directory: ./client
+        run: |
+          if [ -f package.json ]; then
+            npm test --if-present
+          else
+            echo "no client package.json, skipping client tests"
+          fi
+
+      - name: Upload test results (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            server/test-results/**/*
+            client/test-results/**/*
+            npm-debug.log
