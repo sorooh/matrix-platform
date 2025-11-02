@@ -11,6 +11,8 @@ permissions:
 jobs:
   triage:
     runs-on: ubuntu-latest
+    env:
+      TRIAGE_POST_TOKEN: ${{ secrets.TRIAGE_POST_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,12 +47,17 @@ jobs:
         run: |
           echo "Found issues; uploaded errors.txt as 'triage-errors' artifact." >> $GITHUB_STEP_SUMMARY
 
+      - name: Setup Node (for poster script)
+        if: ${{ env.TRIAGE_POST_TOKEN != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Optionally post triage comment (requires TRIAGE_POST_TOKEN secret)
-        if: ${{ secrets.TRIAGE_POST_TOKEN != '' }}
+        if: ${{ env.TRIAGE_POST_TOKEN != '' }}
         run: |
           echo "Posting triage comment using TRIAGE_POST_TOKEN..."
           node ./.github/scripts/post-triage-comment.js
         env:
-          TRIAGE_POST_TOKEN: ${{ secrets.TRIAGE_POST_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
