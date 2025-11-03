@@ -1,0 +1,5 @@
+[
+  { "slug": "admin-dashboard", "name": "Admin Dashboard", "description": "Sample admin dashboard app" },
+  { "slug": "ecommerce-store", "name": "E-commerce Store", "description": "Sample store" },
+  { "slug": "blog", "name": "Blog", "description": "Sample blog" }
+]

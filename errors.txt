@@ -1,0 +1,2 @@
+﻿Sample error: server failed to start on port 3000
+Sample error: test timeout after 5000ms
