@@ -14,6 +14,35 @@ Optional / Nice-to-have (for early review)
 - SSE events are delivered to the frontend and status updates are real-time.
 - A screenshot/GIF demonstrating Run -> Job -> Preview is attached to the PR.
 
+Milestone 2 (Snapshots)
+- Worker captures PNG+HTML snapshots of running previews using Puppeteer.
+- POST /api/snapshot/:app enqueues a snapshot job (returns 202 + id).
+- GET /api/snapshots/:id returns snapshot metadata with paths to png/html when completed.
+
+Verification steps (Snapshots)
+1. Start the backend and start the worker:
+
+```powershell
+# in one terminal
+cd matrix-scaffold\backend
+npm ci
+npm run dev
+
+# in another terminal
+cd matrix-scaffold\backend
+npm run worker
+```
+
+2. Call the snapshot endpoint:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/api/snapshot/admin-dashboard -Method POST
+# returns { id: "..." }
+```
+
+3. Poll GET /api/snapshots/:id until status is 'completed' and then inspect `matrix-scaffold/storage/<id>/preview.png` and `preview.html`.
+
+
 Verification steps
 1. Follow README run steps to start services.
 2. Use the frontend to run an app and observe status.

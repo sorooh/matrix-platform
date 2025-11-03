@@ -1,6 +1,5 @@
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import puppeteer from 'puppeteer'
 
 type SnapshotMeta = {
   id: string
@@ -12,61 +11,42 @@ type SnapshotMeta = {
   error?: string
 }
 
-const store = new Map<string, SnapshotMeta>()
-
-function storageDir() {
+function baseStorageDir() {
   const dir = join(__dirname, '..', '..', 'storage')
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   return dir
 }
 
+function metaDir() {
+  const d = join(baseStorageDir(), 'meta')
+  if (!existsSync(d)) mkdirSync(d, { recursive: true })
+  return d
+}
+
+function queueDir() {
+  const d = join(baseStorageDir(), 'queue')
+  if (!existsSync(d)) mkdirSync(d, { recursive: true })
+  return d
+}
+
 export async function enqueueSnapshot(app: string) {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
   const meta: SnapshotMeta = { id, app, status: 'pending', createdAt: new Date().toISOString() }
-  store.set(id, meta)
+  const metaPath = join(metaDir(), `${id}.json`)
+  writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
 
-  // process in background
-  process.nextTick(() => processSnapshot(id).catch((e) => {
-    const m = store.get(id)
-    if (m) { m.status = 'failed'; m.error = String(e); store.set(id, m) }
-  }))
-
+  const qPath = join(queueDir(), `${id}.json`)
+  writeFileSync(qPath, JSON.stringify({ id, app }), 'utf8')
   return id
 }
 
-export function getSnapshot(id: string) {
-  return store.get(id)
-}
-
-async function processSnapshot(id: string) {
-  const meta = store.get(id)
-  if (!meta) throw new Error('not found')
-  meta.status = 'processing'
-  store.set(id, meta)
-
-  const outDir = join(storageDir(), id)
-  mkdirSync(outDir, { recursive: true })
-  const pngPath = join(outDir, 'preview.png')
-  const htmlPath = join(outDir, 'preview.html')
-
+export function getSnapshot(id: string): SnapshotMeta | null {
+  const metaPath = join(metaDir(), `${id}.json`)
+  if (!existsSync(metaPath)) return null
+  const raw = readFileSync(metaPath, 'utf8')
   try {
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] })
-    const page = await browser.newPage()
-    const url = `http://localhost:3000/apps/${meta.app}`
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 })
-    await page.screenshot({ path: pngPath, fullPage: true })
-    const html = await page.content()
-    writeFileSync(htmlPath, html, 'utf8')
-    await browser.close()
-
-    meta.status = 'completed'
-    meta.pngPath = pngPath
-    meta.htmlPath = htmlPath
-    store.set(id, meta)
-  } catch (err) {
-    meta.status = 'failed'
-    meta.error = String(err)
-    store.set(id, meta)
-    throw err
+    return JSON.parse(raw) as SnapshotMeta
+  } catch (e) {
+    return null
   }
 }
