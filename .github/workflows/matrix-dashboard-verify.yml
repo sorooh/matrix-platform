@@ -1,0 +1,51 @@
+name: PR — Matrix Dashboard verify
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend deps
+        run: npm --prefix matrix-scaffold/backend ci
+
+      - name: Install puppeteer (for demo capture)
+        run: npm --prefix matrix-scaffold/backend i puppeteer --no-audit --no-fund --no-progress
+
+      - name: Start backend
+        run: |
+          nohup npm --prefix matrix-scaffold/backend run dev > backend.log 2>&1 &
+          echo $! > backend.pid
+
+      - name: Wait for backend
+        run: |
+          n=0
+          until curl -sSf http://localhost:3000/api/apps >/dev/null 2>&1 || [ $n -ge 30 ]; do
+            n=$((n+1))
+            sleep 1
+          done
+          if [ $n -ge 30 ]; then
+            echo "backend did not start"
+            cat backend.log || true
+            exit 1
+          fi
+
+      - name: Generate demo (screenshot + html)
+        run: node matrix-scaffold/tools/generate_demo.js
+
+      - name: Upload demo artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-dashboard-demo
+          path: matrix-scaffold/demo

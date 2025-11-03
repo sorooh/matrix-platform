@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+    ports:
+      - "3000:3000"
+    command: sh -lc "npm ci && npm run dev"
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_DEV_SERVER=false
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    working_dir: /work
+    volumes:
+      - ./backend:/work/backend:ro
+      - ./worker:/work/worker:ro
+      - ./storage:/work/storage
+    environment:
+      - SNAPSHOT_MAX_CONCURRENCY=1
+      - SNAPSHOT_RETRY_COUNT=2
+      - SNAPSHOT_RETRY_DELAY_MS=1000
+    command: sh -lc "node /work/worker/worker.js"
