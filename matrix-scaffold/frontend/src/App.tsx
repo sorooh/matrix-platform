@@ -8,6 +8,8 @@ export default function App() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<string | null>(null)
   const [snapshots, setSnapshots] = useState<Array<any>>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 8
   const [previewHtmlId, setPreviewHtmlId] = useState<string | null>(null)
   const [agentMessages, setAgentMessages] = useState<Array<{from:'user'|'agent'; text:string}>>([])
   const [agentInput, setAgentInput] = useState('')
@@ -125,9 +127,23 @@ export default function App() {
               </div>
             )}
             {snapshots.length === 0 ? <div>No snapshots yet</div> : (
-              <ul>
-                {snapshots.map((s: any, i: number) => (
-                  <li key={s.id ?? i} style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+              (() => {
+                const totalPages = Math.max(1, Math.ceil(snapshots.length / PAGE_SIZE))
+                const start = (currentPage - 1) * PAGE_SIZE
+                const pageItems = snapshots.slice(start, start + PAGE_SIZE)
+                return (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ fontSize: 12 }}>{snapshots.length} snapshot(s)</div>
+                      <div>
+                        <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</button>
+                        <span style={{ margin: '0 8px' }}>Page {currentPage}/{totalPages}</span>
+                        <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
+                      </div>
+                    </div>
+                    <ul>
+                      {pageItems.map((s: any, i: number) => (
+                        <li key={s.id ?? i} style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div style={{ width: 140 }}>
                       <div style={{ fontSize: 12 }}>{s.createdAt ?? s.timestamp ?? s.id}</div>
                       <div style={{ marginTop: 6 }}>
@@ -137,24 +153,36 @@ export default function App() {
                             // otherwise fall back to the full preview image
                             const src = s.thumbUrl ? s.thumbUrl : (s.thumbPath ? `/storage/${s.id}/thumb.jpg` : `/storage/${s.id}/preview.png`)
                             const open = s.thumbUrl ? s.thumbUrl : `/storage/${s.id}/preview.png`
-                            return (<img src={src} alt="snapshot" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer' }} onClick={() => window.open(open, '_blank')} />)
+                            return (<img src={src} alt="snapshot" loading="lazy" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer', background:'#f6f6f6' }} onClick={() => window.open(open, '_blank')} />)
                           })()
                         ) : (
                           <div style={{ fontSize: 12 }}>{s.status ?? 'pending'}</div>
                         )}
                       </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      {s.status === 'completed' && (
-                        <div><a href="#" onClick={(ev) => { ev.preventDefault(); setPreviewHtmlId(s.id) }}>Open HTML preview</a></div>
-                      )}
-                      <div style={{ marginTop: 6 }}>
-                        <small>{s.error ? `Error: ${s.error}` : ''}</small>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <span style={{ fontSize: 12 }}>
+                              <strong>{s.status ?? 'pending'}</strong>
+                            </span>
+                            <span style={{
+                              padding: '4px 8px', borderRadius: 12, fontSize: 11, color: '#fff',
+                              background: s.status === 'completed' ? '#2b9348' : (s.status === 'failed' ? '#c62828' : '#6c757d')
+                            }}>{s.status ?? 'pending'}</span>
+                          </div>
+                          {s.status === 'completed' && (
+                            <div style={{ marginTop: 6 }}><a href="#" onClick={(ev) => { ev.preventDefault(); setPreviewHtmlId(s.id) }}>Open HTML preview</a></div>
+                          )}
+                          <div style={{ marginTop: 6 }}>
+                            <small>{s.error ? `Error: ${s.error}` : ''}</small>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                )
+              })()
             )}
           </div>
           {previewHtmlId && (
