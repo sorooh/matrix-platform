@@ -42,6 +42,26 @@ export async function enqueueSnapshot(app: string) {
 
   const qPath = join(queueDir(), `${id}.json`)
   writeFileSync(qPath, JSON.stringify({ id, app }), 'utf8')
+  // If per-job runner is enabled, start a docker-runner to process this job in isolation.
+  try {
+    if (process.env.ENABLE_PER_JOB_RUNNER === '1') {
+      // lazy import to avoid requiring docker when unused
+      const { startJob } = await import('./runner')
+      // start but don't await long-running process; let it run in background
+      startJob(id, app).catch((err) => {
+        // write error to meta
+        try {
+          const raw = readFileSync(metaPath, 'utf8')
+          const m = JSON.parse(raw)
+          m.status = 'failed'
+          m.error = String(err)
+          writeFileSync(metaPath, JSON.stringify(m), 'utf8')
+        } catch (e) {}
+      })
+    }
+  } catch (e) {
+    // ignore runner startup errors — worker fallback will pick up job if available
+  }
   return id
 }
 
