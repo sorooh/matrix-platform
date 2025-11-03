@@ -25,5 +25,7 @@ describe('POST /api/snapshot/:app', () => {
     expect(meta.status).toBe('completed')
     expect(meta.pngPath).toBeDefined()
     expect(meta.htmlPath).toBeDefined()
+    // thumbnail may be stored as thumbPath (local) or thumbUrl (S3)
+    expect(meta.thumbPath || meta.thumbUrl).toBeDefined()
   })
 })
