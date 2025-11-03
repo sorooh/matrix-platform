@@ -1,0 +1,333 @@
+# Matrix Platform Kubernetes Deployment Configuration
+# Production-ready with high availability, auto-scaling, and monitoring
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: matrix-platform
+  labels:
+    app: matrix-platform
+    environment: production
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matrix-config
+  namespace: matrix-platform
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  LOG_LEVEL: "info"
+  API_VERSION: "v2"
+  CORS_ORIGIN: "https://matrix-platform.com,https://app.matrix-platform.com"
+  RATE_LIMIT_WINDOW: "3600000"
+  RATE_LIMIT_MAX: "1000"
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: matrix-secrets
+  namespace: matrix-platform
+type: Opaque
+data:
+  # Base64 encoded secrets (replace with actual values)
+  JWT_SECRET: "your-jwt-secret-base64-encoded"
+  MONGODB_URI: "your-mongodb-uri-base64-encoded"
+  REDIS_URL: "your-redis-url-base64-encoded"
+  POSTGRES_URL: "your-postgres-url-base64-encoded"
+
+---
+# Deployment for Matrix Platform Backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matrix-platform
+  namespace: matrix-platform
+  labels:
+    app: matrix-platform
+    component: backend
+    version: v2
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: matrix-platform
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: matrix-platform
+        component: backend
+        version: v2
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: matrix-platform
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: matrix-platform
+        image: ghcr.io/sorooh/matrix-platform:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3001
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: matrix-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: matrix-config
+              key: PORT
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: matrix-secrets
+              key: JWT_SECRET
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: matrix-secrets
+              key: MONGODB_URI
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: matrix-secrets
+              key: REDIS_URL
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: matrix-secrets
+              key: POSTGRES_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-cache
+          mountPath: /var/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-cache
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - matrix-platform
+              topologyKey: kubernetes.io/hostname
+
+---
+# Service for Matrix Platform
+apiVersion: v1
+kind: Service
+metadata:
+  name: matrix-platform-service
+  namespace: matrix-platform
+  labels:
+    app: matrix-platform
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3001
+    protocol: TCP
+    name: http
+  selector:
+    app: matrix-platform
+    component: backend
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matrix-platform-hpa
+  namespace: matrix-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: matrix-platform
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: matrix-platform-pdb
+  namespace: matrix-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: matrix-platform
+      component: backend
+
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: matrix-platform
+  namespace: matrix-platform
+  labels:
+    app: matrix-platform
+
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: matrix-platform-netpol
+  namespace: matrix-platform
+spec:
+  podSelector:
+    matchLabels:
+      app: matrix-platform
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3001
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: matrix-platform-ingress
+  namespace: matrix-platform
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://matrix-platform.com"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  tls:
+  - hosts:
+    - api.matrix-platform.com
+    secretName: matrix-platform-tls
+  rules:
+  - host: api.matrix-platform.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: matrix-platform-service
+            port:
+              number: 80
