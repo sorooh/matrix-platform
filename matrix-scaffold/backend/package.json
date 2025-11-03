@@ -9,8 +9,8 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
-    "fastify": "^4.21.0",
-    "fastify-cors": "^8.2.0",
+  "fastify": "^4.21.0",
+  "@fastify/cors": "^9.0.0",
     "puppeteer": "^21.0.0",
     "@aws-sdk/client-s3": "^3.500.0",
     "@aws-sdk/s3-request-presigner": "^3.500.0",

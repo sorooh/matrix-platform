@@ -64,7 +64,8 @@ jobs:
         run: |
           mkdir -p matrix-scaffold/storage/queue matrix-scaffold/storage/meta
           # start worker with NODE_PATH pointing to backend node_modules so it finds puppeteer/sharp/jimp
-          (NODE_PATH=${{ github.workspace }}/matrix-scaffold/backend/node_modules node matrix-scaffold/worker/worker.js) &
+          # redirect stdout/stderr to a log file so CI artifacts capture worker output for debugging
+          (NODE_PATH=${{ github.workspace }}/matrix-scaffold/backend/node_modules node matrix-scaffold/worker/worker.js > matrix-scaffold/storage/worker.log 2>&1) &
           echo $! > /tmp/worker_pid
 
       - name: Enqueue snapshot job
@@ -101,28 +102,4 @@ jobs:
         run: |
           if [ -f /tmp/worker_pid ]; then kill $(cat /tmp/worker_pid) || true; fi
           if [ -f /tmp/static_pid ]; then kill $(cat /tmp/static_pid) || true; fi
-name: CI - check native modules (sharp)
-
-on:
-  pull_request:
-  push:
-
-jobs:
-  sharp-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Install backend deps
-        working-directory: matrix-scaffold/backend
-        run: |
-          npm ci
-      - name: Quick sharp import test
-        working-directory: matrix-scaffold/backend
-        run: |
-          node -e "try{ require('sharp'); console.log('sharp: OK') } catch(e) { console.error('sharp import failed', e && e.message); process.exit(2) }"
-      - name: Install puppeteer deps check
-        run: echo "Puppeteer binaries will be installed during CI runs; ensure chromium is available in runner"
+ 

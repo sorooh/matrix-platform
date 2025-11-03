@@ -23,6 +23,13 @@ const base = path.join(__dirname, '..', 'matrix-scaffold', 'storage')
 const qDir = path.join(base, 'queue')
 const metaDir = path.join(base, 'meta')
 
+// ensure storage directories exist (helpful for CI/one-shot runs)
+try {
+  fs.mkdirSync(qDir, { recursive: true })
+  fs.mkdirSync(metaDir, { recursive: true })
+  fs.mkdirSync(path.join(base, 'snapshots'), { recursive: true })
+} catch (e) {}
+
 // configuration (env)
 const MAX_CONCURRENCY = Math.max(1, parseInt(process.env.SNAPSHOT_MAX_CONCURRENCY || '1', 10))
 const RETRY_COUNT = Math.max(0, parseInt(process.env.SNAPSHOT_RETRY_COUNT || '2', 10))
@@ -43,6 +50,8 @@ process.on('SIGTERM', async () => {
 function listQueue() {
   try { return fs.readdirSync(qDir).filter(f => f.endsWith('.json')) } catch(e){ return [] }
 }
+
+const ONE_SHOT = process.env.ONE_SHOT === '1'
 
 async function processJob(file) {
   const p = path.join(qDir, file)
@@ -208,6 +217,13 @@ async function processJob(file) {
   }
   // remove queue file
   try { fs.unlinkSync(p) } catch(e){}
+
+  // If running in CI one-shot mode, exit after completing the first job so
+  // CI can collect logs/artifacts reliably.
+  if (ONE_SHOT) {
+    try { console.log(JSON.stringify({ level: 'info', msg: 'one-shot: exiting after job', id })) } catch(e){}
+    process.exit(0)
+  }
 }
 
 async function loop() {
