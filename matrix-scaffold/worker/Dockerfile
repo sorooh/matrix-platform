@@ -33,10 +33,13 @@ WORKDIR /work
 
 # Copy backend package.json so we can install required dependencies for the
 # worker (worker relies on backend dependencies like puppeteer/sharp/jimp)
-COPY ../backend/package.json ./backend/package.json
+# Copy backend package files (package.json and package-lock.json if present)
+COPY ../backend/package*.json ./backend/
 
 WORKDIR /work/backend
-RUN npm ci --production --no-audit --no-fund --no-progress
+# Use npm install instead of npm ci to avoid failing when package-lock.json
+# isn't present in this context. Install production deps for the worker.
+RUN npm install --production --no-audit --no-fund --no-progress
 
 # Copy worker files
 WORKDIR /work

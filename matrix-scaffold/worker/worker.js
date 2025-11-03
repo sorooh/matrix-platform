@@ -90,14 +90,15 @@ async function processJob(file) {
             const img = await Jimp.read(buf)
             await img.resize(400, Jimp.AUTO).quality(78).writeAsync(thumb)
           } else {
-            // last resort: write raw buffer (likely PNG) to thumb path
-            fs.writeFileSync(thumb, buf)
+            // last resort: write PNG buffer to thumb.png (avoid writing PNG bytes into .jpg)
+            const thumbPng = path.join(outDir, 'thumb.png')
+            fs.writeFileSync(thumbPng, buf)
           }
         }
       } catch (e) {
         // If sharp processing failed after writing preview.png, try a secondary
         // fallback: capture viewport and convert with available tool.
-        try {
+          try {
           await page.setViewport({ width: 400, height: 300 })
           const buf = await page.screenshot({ fullPage: false })
           if (sharp) {
@@ -106,7 +107,8 @@ async function processJob(file) {
             const img = await Jimp.read(buf)
             await img.resize(400, Jimp.AUTO).quality(78).writeAsync(thumb)
           } else {
-            fs.writeFileSync(thumb, buf)
+            const thumbPng = path.join(outDir, 'thumb.png')
+            fs.writeFileSync(thumbPng, buf)
           }
         } catch (e2) {
           // ignore thumbnail errors
@@ -116,10 +118,14 @@ async function processJob(file) {
       fs.writeFileSync(htmlPath, html, 'utf8')
       try { await browser.close() } catch(e){}
       const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
-      meta.status = 'completed'
-      meta.pngPath = png
-      meta.thumbPath = fs.existsSync(thumb) ? thumb : undefined
-      meta.htmlPath = htmlPath
+  meta.status = 'completed'
+  meta.pngPath = png
+  // prefer jpg thumb, fall back to png thumb if present
+  const thumbPngPath = path.join(outDir, 'thumb.png')
+  if (fs.existsSync(thumb)) meta.thumbPath = thumb
+  else if (fs.existsSync(thumbPngPath)) meta.thumbPath = thumbPngPath
+  else meta.thumbPath = undefined
+  meta.htmlPath = htmlPath
 
       if (s3Client && S3_BUCKET) {
         const pngKey = `snapshots/${id}/preview.png`
@@ -134,14 +140,20 @@ async function processJob(file) {
           const htmlUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
           meta.pngUrl = pngUrl
           meta.htmlUrl = htmlUrl
+          // upload thumb if available; prefer jpg key but fall back to png key
+          const thumbPngKey = `snapshots/${id}/thumb.png`
           if (fs.existsSync(thumb)) {
             const thumbUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: thumbKey }), { expiresIn: 3600 })
+            meta.thumbUrl = thumbUrl
+          } else if (fs.existsSync(thumbPngPath)) {
+            const thumbUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: thumbPngKey }), { expiresIn: 3600 })
             meta.thumbUrl = thumbUrl
           }
         } catch (e) {
           meta.pngUrl = `s3://${S3_BUCKET}/${pngKey}`
           meta.htmlUrl = `s3://${S3_BUCKET}/${htmlKey}`
           if (fs.existsSync(thumb)) meta.thumbUrl = `s3://${S3_BUCKET}/${thumbKey}`
+          else if (fs.existsSync(thumbPngPath)) meta.thumbUrl = `s3://${S3_BUCKET}/${thumbPngKey}`
         }
       }
 
