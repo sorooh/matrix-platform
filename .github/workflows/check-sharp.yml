@@ -27,7 +27,7 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: matrix-scaffold/backend
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Verify native modules availability (sharp/jimp/puppeteer)
         working-directory: matrix-scaffold/backend

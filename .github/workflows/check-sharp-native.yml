@@ -16,7 +16,7 @@ jobs:
       - name: Install backend deps
         working-directory: matrix-scaffold/backend
         run: |
-          npm ci
+          npm install --no-audit --no-fund
       - name: Quick sharp import test
         working-directory: matrix-scaffold/backend
         run: |
