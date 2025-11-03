@@ -1,0 +1,119 @@
+# Multi-stage Docker build for Matrix Platform Production
+# Optimized for size, security, and performance
+
+# =====================================
+# Stage 1: Dependencies
+# =====================================
+FROM node:20-alpine AS dependencies
+
+# Security: Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S matrix -u 1001
+
+# Install pnpm globally
+RUN npm install -g pnpm@8
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+COPY matrix-scaffold/package.json ./matrix-scaffold/
+
+# Install dependencies with production optimization
+RUN pnpm install --frozen-lockfile --prod=false
+
+# =====================================
+# Stage 2: Build
+# =====================================
+FROM dependencies AS builder
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN pnpm run build
+
+# Remove dev dependencies and keep only production dependencies
+RUN pnpm prune --prod --config.ignore-scripts=true
+
+# =====================================
+# Stage 3: Runtime
+# =====================================
+FROM node:20-alpine AS runtime
+
+# Security and performance labels
+LABEL maintainer="Matrix Platform Team <dev@matrix-platform.com>"
+LABEL org.opencontainers.image.title="Matrix Platform"
+LABEL org.opencontainers.image.description="Enterprise deployment platform"
+LABEL org.opencontainers.image.source="https://github.com/sorooh/matrix-platform"
+LABEL org.opencontainers.image.vendor="Matrix Platform"
+
+# Build arguments
+ARG NODE_VERSION=20
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
+# Environment labels
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.revision=$VCS_REF
+LABEL org.opencontainers.image.version=$VERSION
+
+# Security: Install security updates
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
+        dumb-init \
+        curl \
+        ca-certificates && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S matrix -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Change ownership to non-root user
+RUN chown -R matrix:nodejs /app
+
+# Switch to non-root user
+USER matrix
+
+# Copy built application from builder stage
+COPY --from=builder --chown=matrix:nodejs /app/dist ./dist
+COPY --from=builder --chown=matrix:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=matrix:nodejs /app/package.json ./
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Expose port
+EXPOSE 3001
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "dist/server.js"]
+
+# =====================================
+# Stage 4: Development (Optional)
+# =====================================
+FROM dependencies AS development
+
+# Install additional development tools
+RUN pnpm add -g nodemon ts-node
+
+# Copy source code
+COPY . .
+
+# Expose port for development
+EXPOSE 3001
+EXPOSE 9229
+
+# Development command with hot reload
+CMD ["pnpm", "run", "dev"]
