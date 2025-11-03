@@ -1,15 +1,42 @@
-FROM node:18-alpine
+FROM node:18-bullseye-slim
 
-# Install system deps required by sharp and puppeteer
-RUN apk add --no-cache --virtual .build-deps python3 make g++ cairo-dev pango-dev libjpeg-turbo-dev libpng-dev giflib-dev
+# Install system deps required by sharp and puppeteer. Using Debian-based
+# image reduces native build issues for sharp and provides a Chromium binary
+# compatible with Puppeteer in many CI runners.
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		build-essential \
+		python3 \
+		ca-certificates \
+		libvips-dev \
+		libjpeg-dev \
+		libpng-dev \
+		wget \
+		gnupg \
+		fontconfig \
+		fonts-liberation \
+		libatk-bridge2.0-0 \
+		libgtk-3-0 \
+		libx11-6 \
+		libx11-xcb1 \
+		libxcb1 \
+		libxcomposite1 \
+		libxdamage1 \
+		libxrandr2 \
+		libgbm1 \
+		libasound2 \
+		libpangocairo-1.0-0 \
+		libpango-1.0-0 \
+	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
 
-# Copy backend package.json so we can install required dependencies
+# Copy backend package.json so we can install required dependencies for the
+# worker (worker relies on backend dependencies like puppeteer/sharp/jimp)
 COPY ../backend/package.json ./backend/package.json
 
 WORKDIR /work/backend
-RUN npm ci --production
+RUN npm ci --production --no-audit --no-fund --no-progress
 
 # Copy worker files
 WORKDIR /work
