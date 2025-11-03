@@ -1,0 +1,30 @@
+{
+  "name": "matrix-scaffold-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "worker": "node ../worker/worker.js",
+    "start": "node ./dist/main.js",
+    "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "fastify": "^4.21.0",
+    "fastify-cors": "^8.2.0",
+    "puppeteer": "^21.0.0",
+    "@aws-sdk/client-s3": "^3.500.0",
+    "@aws-sdk/s3-request-presigner": "^3.500.0",
+  "sharp": "^0.32.0",
+  "jimp": "^0.22.10",
+    "nanoid": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.1.0",
+    "jest": "^29.0.0",
+    "supertest": "^6.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/supertest": "^2.0.12"
+  }
+}

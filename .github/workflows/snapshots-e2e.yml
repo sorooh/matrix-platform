@@ -1,0 +1,157 @@
+name: CI - snapshots E2E
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  snapshots-e2e:
+    runs-on: ubuntu-latest
+    services:
+      # use docker-compose in a step instead of services to allow building custom worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and run compose
+        run: |
+          cd matrix-scaffold
+          docker-compose up -d --build
+          # give services a few seconds to start
+          sleep 6
+
+      - name: Wait for backend
+        run: |
+          # wait for backend to be ready
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sS http://localhost:3000/api/apps >/dev/null; then echo ok && break; fi
+            sleep 2
+          done
+
+      - name: Trigger snapshot job
+        run: |
+          set -e
+          id=$(curl -s -X POST http://localhost:3000/api/snapshot/admin-dashboard | jq -r '.id')
+          echo "snapshot id=$id"
+          # poll until status completed or timeout
+          for i in `seq 1 60`; do
+            status=$(curl -s http://localhost:3000/api/snapshots/$id | jq -r '.status') || status=""
+            echo "status=$status"
+            if [ "$status" = "completed" ]; then break; fi
+            sleep 1
+          done
+          # fetch meta
+          curl -s http://localhost:3000/api/snapshots/$id -o /tmp/snapshot_meta.json
+          cat /tmp/snapshot_meta.json
+
+      - name: Assert thumbnail exists
+        run: |
+          set -e
+          meta=/tmp/snapshot_meta.json
+          has_thumb=$(jq -r '.thumbPath // .thumbUrl // empty' $meta)
+          if [ -z "$has_thumb" ]; then echo "No thumbPath or thumbUrl in meta"; cat $meta; exit 2; fi
+          echo "thumb ok: $has_thumb"
+
+      - name: Collect storage artifacts
+        run: |
+          cd matrix-scaffold || exit 0
+          tar -czf /tmp/storage-artifacts.tar.gz storage || true
+        continue-on-error: true
+
+      - name: Upload storage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-storage
+          path: /tmp/storage-artifacts.tar.gz
+
+      - name: Teardown
+        if: always()
+        run: |
+          cd matrix-scaffold
+          docker-compose down --volumes --remove-orphans || true
+name: Snapshots E2E
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  snapshots-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend deps
+        run: npm --prefix matrix-scaffold/backend ci
+
+      - name: Verify sharp installed (thumbnail lib)
+        run: |
+          node -e "try{require('./matrix-scaffold/backend/node_modules/sharp'); console.log('sharp OK')}catch(e){console.error('sharp not found or failed to load', e); process.exit(2)}"
+
+      - name: Install puppeteer
+        run: npm --prefix matrix-scaffold/backend i puppeteer --no-audit --no-fund --no-progress
+
+      - name: Start backend
+        run: |
+          nohup npm --prefix matrix-scaffold/backend run dev > backend.log 2>&1 &
+          echo $! > backend.pid
+
+      - name: Start worker
+        run: |
+          nohup npm --prefix matrix-scaffold/backend run worker > worker.log 2>&1 &
+          echo $! > worker.pid
+
+      - name: Wait for backend
+        run: |
+          n=0
+          until curl -sSf http://localhost:3000/api/apps >/dev/null 2>&1 || [ $n -ge 30 ]; do
+            n=$((n+1))
+            sleep 1
+          done
+          if [ $n -ge 30 ]; then
+            echo "backend did not start"
+            cat backend.log || true
+            exit 1
+          fi
+
+      - name: Run snapshot tests
+        run: |
+          npm --prefix matrix-scaffold/backend test -- --runTestsByPath matrix-scaffold/test/snapshot.test.js matrix-scaffold/test/snapshots_list.test.js
+
+      - name: Assert thumbnails exist and collect list
+        if: always()
+        run: |
+          set -e
+          echo "Listing storage contents"
+          if [ -d matrix-scaffold/storage ]; then
+            find matrix-scaffold/storage -type f -maxdepth 3 -name 'thumb.png' -print > thumbs.txt || true
+            if [ ! -s thumbs.txt ]; then
+              echo "No thumbnails (thumb.png) found in matrix-scaffold/storage"
+              # continue but mark as failure for visibility
+              cat backend.log || true
+              exit 1
+            fi
+            echo "Found thumbnails:"
+            cat thumbs.txt
+          else
+            echo "storage directory missing"
+            exit 1
+          fi
+
+      - name: Upload storage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-storage
+          path: |
+            matrix-scaffold/storage/**
+            thumbs.txt
