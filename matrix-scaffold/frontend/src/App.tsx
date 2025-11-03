@@ -47,7 +47,7 @@ export default function App() {
         if (d && d.id === jobId) {
           setJobStatus('completed')
           // load snapshots for the app
-          fetch(`/api/snapshot/${d.app}`).then((r) => r.json()).then(setSnapshots).catch(() => setSnapshots([]))
+          fetch(`/api/snapshots?app=${encodeURIComponent(d.app)}`).then((r) => r.json()).then(setSnapshots).catch(() => setSnapshots([]))
           // ensure preview updates
           setTimeout(() => {
             // reload iframe by toggling selected
@@ -110,9 +110,33 @@ export default function App() {
           <div style={{ marginTop: 12 }}>Job: {jobId ?? '—'} — Status: {jobStatus ?? '—'}</div>
           <div style={{ marginTop: 12 }}>
             <h3>Snapshots</h3>
+            {selected && (
+              <div style={{ marginBottom: 8 }}>
+                <button onClick={async () => {
+                  try {
+                    const r = await fetch(`/api/snapshot/${selected}`, { method: 'POST' })
+                    const d = await r.json()
+                    if (d && d.id) {
+                      setSnapshots((s) => [{ id: d.id, status: 'pending', createdAt: new Date().toISOString() }, ...s])
+                    }
+                  } catch (err) {}
+                }}>Capture snapshot</button>
+              </div>
+            )}
             {snapshots.length === 0 ? <div>No snapshots yet</div> : (
               <ul>
-                {snapshots.map((s, i) => <li key={i}>{s.timestamp ?? s}</li>)}
+                {snapshots.map((s: any, i: number) => (
+                  <li key={s.id ?? i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12 }}>{s.createdAt ?? s.timestamp ?? s.id}</div>
+                    <div>
+                      {s.status === 'completed' ? (
+                        <a href={`/storage/${s.id}/preview.png`} target="_blank" rel="noreferrer">View PNG</a>
+                      ) : (
+                        <span>{s.status ?? 'pending'}</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>
