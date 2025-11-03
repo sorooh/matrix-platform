@@ -1,6 +1,6 @@
 import Fastify from 'fastify'
 import cors from 'fastify-cors'
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync, existsSync, createReadStream } from 'fs'
 import { join } from 'path'
 import { nanoid } from 'nanoid'
 
@@ -87,6 +87,47 @@ server.get('/api/snapshots/:id', async (request, reply) => {
   const meta = getSnapshot(id)
   if (!meta) return reply.status(404).send({ error: 'not found' })
   return meta
+})
+
+// list snapshots, optional query ?app=slug
+server.get('/api/snapshots', async (request, reply) => {
+  const app = (request.query as any)?.app
+  const metaDir = join(__dirname, '..', '..', 'storage', 'meta')
+  if (!existsSync(metaDir)) return []
+  const files = readdirSync(metaDir).filter((f) => f.endsWith('.json'))
+  const metas = files.map((f) => {
+    try {
+      const raw = readFileSync(join(metaDir, f), 'utf8')
+      return JSON.parse(raw)
+    } catch (e) {
+      return null
+    }
+  }).filter(Boolean)
+  if (app) return metas.filter((m: any) => m.app === app)
+  return metas
+})
+
+// serve storage files (png/html)
+server.get('/storage/:id/:filename', async (request, reply) => {
+  const { id, filename } = request.params as any
+  const S3_BUCKET = process.env.SNAPSHOT_S3_BUCKET || process.env.S3_BUCKET || ''
+  // if S3 configured, return redirect to stored url in meta
+  if (S3_BUCKET) {
+    const meta = getSnapshot(id)
+    if (!meta) return reply.status(404).send({ error: 'not found' })
+    const url = filename.endsWith('.png') ? meta.pngUrl : meta.htmlUrl
+    if (!url) return reply.status(404).send({ error: 'not available' })
+    return reply.redirect(url)
+  }
+
+  const p = join(__dirname, '..', '..', 'storage', id, filename)
+  if (!existsSync(p)) return reply.status(404).send({ error: 'not found' })
+  const stream = createReadStream(p)
+  const ext = filename.split('.').pop()?.toLowerCase()
+  if (ext === 'png') reply.header('Content-Type', 'image/png')
+  else if (ext === 'html') reply.header('Content-Type', 'text/html; charset=utf-8')
+  else reply.header('Content-Type', 'application/octet-stream')
+  return reply.send(stream)
 })
 
 server.get('/apps/:slug', async (request, reply) => {

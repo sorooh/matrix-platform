@@ -42,6 +42,10 @@ Invoke-RestMethod -Uri http://localhost:3000/api/snapshot/admin-dashboard -Metho
 
 3. Poll GET /api/snapshots/:id until status is 'completed' and then inspect `matrix-scaffold/storage/<id>/preview.png` and `preview.html`.
 
+Notes on optional S3 storage
+- If you set the environment variable `SNAPSHOT_S3_BUCKET` (or `S3_BUCKET`) and provide AWS credentials in the environment, the worker will upload snapshot artifacts to S3 and the backend will redirect to signed S3 URLs when serving snapshot files.
+- CI-friendly: set AWS credentials as Actions secrets and the bucket name in `SNAPSHOT_S3_BUCKET` to store artifacts in S3 instead of the runner workspace.
+
 
 Verification steps
 1. Follow README run steps to start services.

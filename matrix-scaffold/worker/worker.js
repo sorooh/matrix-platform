@@ -1,6 +1,11 @@
 const fs = require('fs')
 const path = require('path')
 const puppeteer = require('puppeteer')
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+
+const S3_BUCKET = process.env.SNAPSHOT_S3_BUCKET || process.env.S3_BUCKET || ''
+const s3Client = S3_BUCKET ? new S3Client({}) : null
 
 const base = path.join(__dirname, '..', 'matrix-scaffold', 'storage')
 const qDir = path.join(base, 'queue')
@@ -38,12 +43,36 @@ async function processJob(file) {
     const html = await page.content()
     fs.writeFileSync(htmlPath, html, 'utf8')
     await browser.close()
-
     const metaPath = path.join(metaDir, `${id}.json`)
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
     meta.status = 'completed'
     meta.pngPath = png
     meta.htmlPath = htmlPath
+
+    // if S3 configured, upload artifacts and attach URLs
+    if (s3Client && S3_BUCKET) {
+      const pngKey = `snapshots/${id}/preview.png`
+      const htmlKey = `snapshots/${id}/preview.html`
+      // upload png
+      const pngBody = fs.readFileSync(png)
+      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey, Body: pngBody, ContentType: 'image/png' }))
+      // upload html
+      const htmlBody = Buffer.from(html, 'utf8')
+      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey, Body: htmlBody, ContentType: 'text/html; charset=utf-8' }))
+
+      // generate presigned urls (valid 1 hour)
+      try {
+        const pngUrl = await getSignedUrl(s3Client, new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey }), { expiresIn: 3600 })
+        const htmlUrl = await getSignedUrl(s3Client, new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
+        meta.pngUrl = pngUrl
+        meta.htmlUrl = htmlUrl
+      } catch (e) {
+        // if presign fails, fall back to object path
+        meta.pngUrl = `s3://${S3_BUCKET}/${pngKey}`
+        meta.htmlUrl = `s3://${S3_BUCKET}/${htmlKey}`
+      }
+    }
+
     fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
   } catch (err) {
     const metaPath = path.join(metaDir, `${id}.json`)
