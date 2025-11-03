@@ -36,3 +36,11 @@ cd matrix-scaffold/test
 5. Agents chat: in the left panel send a message — you should see a simulated agent reply.
 
 If all the above pass, the MVP is accepted for Milestone 1.
+
+Snapshots, thumbnails and CI notes
+
+- Thumbnails: the snapshot worker generates a full-page PNG (`preview.png`) and a thumbnail (`thumb.png`) for each snapshot. By default thumbnails are PNG to preserve visual fidelity.
+- sharp: the worker prefers to use the native `sharp` library to create high-quality thumbnails from the full PNG. `sharp` is included as a dependency; CI (GitHub Actions) supports installing its native binaries. On some local Windows setups you may need build tools if prebuilt binaries are unavailable.
+- S3: optionally set `SNAPSHOT_S3_BUCKET` (and AWS credentials in env) to upload snapshot artifacts to S3. See `matrix-scaffold/docs/aws-iam-policy.md` for a minimal IAM policy and instructions.
+
+If you need thumbnails as JPEG to save space, I can switch the worker to produce JPEG thumbs instead — currently PNG is used for best visual fidelity.

@@ -20,6 +20,10 @@ jobs:
       - name: Install backend deps
         run: npm --prefix matrix-scaffold/backend ci
 
+      - name: Verify sharp installed (thumbnail lib)
+        run: |
+          node -e "try{require('./matrix-scaffold/backend/node_modules/sharp'); console.log('sharp OK')}catch(e){console.error('sharp not found or failed to load', e); process.exit(2)}"
+
       - name: Install puppeteer
         run: npm --prefix matrix-scaffold/backend i puppeteer --no-audit --no-fund --no-progress
 
