@@ -126,14 +126,24 @@ export default function App() {
             {snapshots.length === 0 ? <div>No snapshots yet</div> : (
               <ul>
                 {snapshots.map((s: any, i: number) => (
-                  <li key={s.id ?? i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12 }}>{s.createdAt ?? s.timestamp ?? s.id}</div>
-                    <div>
-                      {s.status === 'completed' ? (
-                        <a href={`/storage/${s.id}/preview.png`} target="_blank" rel="noreferrer">View PNG</a>
-                      ) : (
-                        <span>{s.status ?? 'pending'}</span>
+                  <li key={s.id ?? i} style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ width: 140 }}>
+                      <div style={{ fontSize: 12 }}>{s.createdAt ?? s.timestamp ?? s.id}</div>
+                      <div style={{ marginTop: 6 }}>
+                        {s.status === 'completed' ? (
+                          <img src={`/storage/${s.id}/preview.png`} alt="snapshot" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer' }} onClick={() => window.open(`/storage/${s.id}/preview.png`, '_blank')} />
+                        ) : (
+                          <div style={{ fontSize: 12 }}>{s.status ?? 'pending'}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      {s.status === 'completed' && (
+                        <div><a href={`/storage/${s.id}/preview.html`} target="_blank" rel="noreferrer">Open HTML preview</a></div>
                       )}
+                      <div style={{ marginTop: 6 }}>
+                        <small>{s.error ? `Error: ${s.error}` : ''}</small>
+                      </div>
                     </div>
                   </li>
                 ))}

@@ -2,47 +2,28 @@ version: '3.8'
 services:
   backend:
     image: node:18
-    working_dir: /app
+    working_dir: /work
     volumes:
-      - ./backend:/app
+      - ./backend:/work/backend
+      - ./storage:/work/storage
     ports:
-      - 3000:3000
-    command: sh -lc "npm ci && npm run dev"
+      - "3000:3000"
+    command: sh -lc "cd /work/backend && npm ci && npm run dev"
 
   frontend:
     image: node:18
-    working_dir: /app
+    working_dir: /work
     volumes:
-      - ./frontend:/app
+      - ./frontend:/work/frontend
     ports:
-      - 5173:5173
-    command: sh -lc "npm ci && npm run dev"
+      - "5173:5173"
+    command: sh -lc "cd /work/frontend && npm ci && npm run dev -- --host 0.0.0.0"
 
   worker:
     image: node:18
-    working_dir: /app
+    working_dir: /work
     volumes:
-      - ./:/app-root
-      - ./backend:/app-root/matrix-scaffold/backend
-      - ./worker:/app-root/worker
-    command: sh -lc "cd /app-root/matrix-scaffold/backend && npm ci && npm run worker"
-version: '3.8'
-services:
-  backend:
-    build: .
-    working_dir: /app/backend
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/package.json:/app/package.json
-    ports:
-      - "3000:3000"
-    command: npm run dev --prefix ./backend
-
-  frontend:
-    image: node:18-alpine
-    working_dir: /app/frontend
-    volumes:
-      - ./frontend:/app/frontend
-    ports:
-      - "5173:5173"
-    command: sh -c "npm install --prefix ./frontend && npm run dev --prefix ./frontend -- --host 0.0.0.0"
+      - ./backend:/work/backend
+      - ./worker:/work/worker
+      - ./storage:/work/storage
+    command: sh -lc "cd /work/backend && npm ci && npm run worker"
