@@ -149,11 +149,33 @@ export default function App() {
                       <div style={{ marginTop: 6 }}>
                         {s.status === 'completed' ? (
                           (() => {
-                            // prefer an S3-presigned URL if present (meta.thumbUrl), else use a local thumb if available,
-                            // otherwise fall back to the full preview image
-                            const src = s.thumbUrl ? s.thumbUrl : (s.thumbPath ? `/storage/${s.id}/thumb.jpg` : `/storage/${s.id}/preview.png`)
-                            const open = s.thumbUrl ? s.thumbUrl : `/storage/${s.id}/preview.png`
-                            return (<img src={src} alt="snapshot" loading="lazy" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer', background:'#f6f6f6' }} onClick={() => window.open(open, '_blank')} />)
+                            // Show a thumbnail with robust fallbacks:
+                            // order: meta.thumbUrl, /storage/<id>/thumb.jpg, /storage/<id>/thumb.png, /storage/<id>/preview.png
+                            const candidates: string[] = []
+                            if (s.thumbUrl) candidates.push(s.thumbUrl)
+                            candidates.push(`/storage/${s.id}/thumb.jpg`)
+                            candidates.push(`/storage/${s.id}/thumb.png`)
+                            candidates.push(`/storage/${s.id}/preview.png`)
+
+                            // Small inline thumbnail component with onError fallback
+                            const Thumbnail = ({ srcs }: { srcs: string[] }) => {
+                              const [idx, setIdx] = React.useState(0)
+                              const src = srcs[idx]
+                              return (
+                                <img
+                                  src={src}
+                                  alt="snapshot"
+                                  loading="lazy"
+                                  style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer', background: '#f6f6f6' }}
+                                  onClick={() => window.open(srcs[srcs.length - 1], '_blank')}
+                                  onError={() => {
+                                    if (idx + 1 < srcs.length) setIdx(idx + 1)
+                                  }}
+                                />
+                              )
+                            }
+
+                            return <Thumbnail srcs={candidates} />
                           })()
                         ) : (
                           <div style={{ fontSize: 12 }}>{s.status ?? 'pending'}</div>
