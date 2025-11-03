@@ -70,6 +70,7 @@ server.get('/api/jobs/:id', async (request, reply) => {
 })
 
 import { enqueueSnapshot, getSnapshot } from './snapshots'
+import { readdirSync, existsSync, readFileSync } from 'fs'
 
 server.post('/api/snapshot/:app', async (request, reply) => {
   const app = (request.params as any).app
@@ -105,6 +106,28 @@ server.get('/api/snapshots', async (request, reply) => {
   }).filter(Boolean)
   if (app) return metas.filter((m: any) => m.app === app)
   return metas
+})
+
+// Health check
+server.get('/health', async () => {
+  return { status: 'ok', uptime: process.uptime() }
+})
+
+// Simple metrics endpoint (JSON). Not Prometheus format yet — small and safe.
+server.get('/metrics', async (request, reply) => {
+  try {
+    const metaDir = join(__dirname, '..', '..', 'storage', 'meta')
+    let snapshotsCount = 0
+    if (existsSync(metaDir)) {
+      const files = readdirSync(metaDir).filter((f) => f.endsWith('.json'))
+      snapshotsCount = files.length
+    }
+    const jobCount = jobs.size
+    return { uptime: process.uptime(), jobs: jobCount, snapshots: snapshotsCount }
+  } catch (e) {
+    reply.code(500)
+    return { error: String(e) }
+  }
 })
 
 // serve storage files (png/html)
