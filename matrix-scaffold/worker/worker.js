@@ -116,6 +116,28 @@ async function processJob(file) {
       }
       const html = await page.content()
       fs.writeFileSync(htmlPath, html, 'utf8')
+
+      // If we only produced a fallback PNG thumbnail, try to convert it to
+      // a proper JPEG `thumb.jpg` now. Prefer `sharp` then `Jimp` so CI that
+      // includes the pure-JS fallback (Jimp) will still produce a .jpg.
+      try {
+        const thumbPngPath = path.join(outDir, 'thumb.png')
+        // `thumb` variable is defined above as the .jpg path
+        if (!fs.existsSync(thumb) && fs.existsSync(thumbPngPath)) {
+          if (sharp) {
+            await sharp(thumbPngPath).jpeg({ quality: 78 }).toFile(thumb)
+            // remove png fallback to keep storage tidy
+            try { fs.unlinkSync(thumbPngPath) } catch (e) {}
+          } else if (Jimp) {
+            const img = await Jimp.read(thumbPngPath)
+            await img.quality(78).writeAsync(thumb)
+            try { fs.unlinkSync(thumbPngPath) } catch (e) {}
+          }
+        }
+      } catch (convErr) {
+        // conversion failed; leave whatever thumbnail exists
+      }
+
       try { await browser.close() } catch(e){}
       const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
   meta.status = 'completed'
