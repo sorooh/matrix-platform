@@ -8,6 +8,7 @@ export default function App() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<string | null>(null)
   const [snapshots, setSnapshots] = useState<Array<any>>([])
+  const [previewHtmlId, setPreviewHtmlId] = useState<string | null>(null)
   const [agentMessages, setAgentMessages] = useState<Array<{from:'user'|'agent'; text:string}>>([])
   const [agentInput, setAgentInput] = useState('')
 
@@ -139,7 +140,7 @@ export default function App() {
                     </div>
                     <div style={{ flex: 1 }}>
                       {s.status === 'completed' && (
-                        <div><a href={`/storage/${s.id}/preview.html`} target="_blank" rel="noreferrer">Open HTML preview</a></div>
+                        <div><a href="#" onClick={(ev) => { ev.preventDefault(); setPreviewHtmlId(s.id) }}>Open HTML preview</a></div>
                       )}
                       <div style={{ marginTop: 6 }}>
                         <small>{s.error ? `Error: ${s.error}` : ''}</small>
@@ -150,6 +151,17 @@ export default function App() {
               </ul>
             )}
           </div>
+          {previewHtmlId && (
+            <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPreviewHtmlId(null)}>
+              <div style={{ width: '80%', height: '80%', background: '#fff', borderRadius: 6, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ padding: 8, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
+                  <div>Preview: {previewHtmlId}</div>
+                  <button onClick={() => setPreviewHtmlId(null)}>Close</button>
+                </div>
+                <iframe src={`/storage/${previewHtmlId}/preview.html`} style={{ width: '100%', height: 'calc(100% - 40px)', border: 0 }} sandbox="allow-same-origin allow-scripts" />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

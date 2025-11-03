@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const puppeteer = require('puppeteer')
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 
 const S3_BUCKET = process.env.SNAPSHOT_S3_BUCKET || process.env.S3_BUCKET || ''
@@ -38,21 +38,32 @@ async function processJob(file) {
     const url = `http://localhost:3000/apps/${app}`
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 })
     const png = path.join(outDir, 'preview.png')
+    const thumb = path.join(outDir, 'thumb.png')
     const htmlPath = path.join(outDir, 'preview.html')
+    // full page screenshot
     await page.screenshot({ path: png, fullPage: true })
+    // small thumbnail: set a reasonable viewport and capture
+    try {
+      await page.setViewport({ width: 400, height: 300 })
+      await page.screenshot({ path: thumb, fullPage: false })
+    } catch (e) {
+      // ignore thumbnail errors
+    }
     const html = await page.content()
     fs.writeFileSync(htmlPath, html, 'utf8')
     await browser.close()
     const metaPath = path.join(metaDir, `${id}.json`)
     const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
-    meta.status = 'completed'
-    meta.pngPath = png
-    meta.htmlPath = htmlPath
+  meta.status = 'completed'
+  meta.pngPath = png
+  meta.thumbPath = fs.existsSync(thumb) ? thumb : undefined
+  meta.htmlPath = htmlPath
 
     // if S3 configured, upload artifacts and attach URLs
     if (s3Client && S3_BUCKET) {
-      const pngKey = `snapshots/${id}/preview.png`
-      const htmlKey = `snapshots/${id}/preview.html`
+  const pngKey = `snapshots/${id}/preview.png`
+  const htmlKey = `snapshots/${id}/preview.html`
+  const thumbKey = `snapshots/${id}/thumb.png`
       // upload png
       const pngBody = fs.readFileSync(png)
       await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey, Body: pngBody, ContentType: 'image/png' }))
@@ -60,16 +71,21 @@ async function processJob(file) {
       const htmlBody = Buffer.from(html, 'utf8')
       await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey, Body: htmlBody, ContentType: 'text/html; charset=utf-8' }))
 
-      // generate presigned urls (valid 1 hour)
+      // generate presigned urls (valid 1 hour) using GET presign
       try {
-        const pngUrl = await getSignedUrl(s3Client, new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey }), { expiresIn: 3600 })
-        const htmlUrl = await getSignedUrl(s3Client, new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
+        const pngUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: pngKey }), { expiresIn: 3600 })
+        const htmlUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
         meta.pngUrl = pngUrl
         meta.htmlUrl = htmlUrl
+        if (fs.existsSync(thumb)) {
+          const thumbUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: thumbKey }), { expiresIn: 3600 })
+          meta.thumbUrl = thumbUrl
+        }
       } catch (e) {
         // if presign fails, fall back to object path
         meta.pngUrl = `s3://${S3_BUCKET}/${pngKey}`
         meta.htmlUrl = `s3://${S3_BUCKET}/${htmlKey}`
+        if (fs.existsSync(thumb)) meta.thumbUrl = `s3://${S3_BUCKET}/${thumbKey}`
       }
     }
 
