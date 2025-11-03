@@ -1,6 +1,12 @@
 const fs = require('fs')
 const path = require('path')
 const puppeteer = require('puppeteer')
+let sharp
+try {
+  sharp = require('sharp')
+} catch (e) {
+  sharp = null
+}
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 
@@ -42,12 +48,26 @@ async function processJob(file) {
     const htmlPath = path.join(outDir, 'preview.html')
     // full page screenshot
     await page.screenshot({ path: png, fullPage: true })
-    // small thumbnail: set a reasonable viewport and capture
-    try {
-      await page.setViewport({ width: 400, height: 300 })
-      await page.screenshot({ path: thumb, fullPage: false })
-    } catch (e) {
-      // ignore thumbnail errors
+    // generate thumbnail using sharp if available, else fallback to viewport capture
+    if (sharp) {
+      try {
+        await sharp(png).resize({ width: 400 }).toFile(thumb)
+      } catch (e) {
+        // fallback: try viewport capture
+        try {
+          await page.setViewport({ width: 400, height: 300 })
+          await page.screenshot({ path: thumb, fullPage: false })
+        } catch (e2) {
+          // ignore
+        }
+      }
+    } else {
+      try {
+        await page.setViewport({ width: 400, height: 300 })
+        await page.screenshot({ path: thumb, fullPage: false })
+      } catch (e) {
+        // ignore thumbnail errors
+      }
     }
     const html = await page.content()
     fs.writeFileSync(htmlPath, html, 'utf8')
