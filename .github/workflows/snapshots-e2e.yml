@@ -50,9 +50,31 @@ jobs:
         run: |
           npm --prefix matrix-scaffold/backend test -- --runTestsByPath matrix-scaffold/test/snapshot.test.js matrix-scaffold/test/snapshots_list.test.js
 
+      - name: Assert thumbnails exist and collect list
+        if: always()
+        run: |
+          set -e
+          echo "Listing storage contents"
+          if [ -d matrix-scaffold/storage ]; then
+            find matrix-scaffold/storage -type f -maxdepth 3 -name 'thumb.png' -print > thumbs.txt || true
+            if [ ! -s thumbs.txt ]; then
+              echo "No thumbnails (thumb.png) found in matrix-scaffold/storage"
+              # continue but mark as failure for visibility
+              cat backend.log || true
+              exit 1
+            fi
+            echo "Found thumbnails:"
+            cat thumbs.txt
+          else
+            echo "storage directory missing"
+            exit 1
+          fi
+
       - name: Upload storage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: snapshot-storage
-          path: matrix-scaffold/storage/**
+          path: |
+            matrix-scaffold/storage/**
+            thumbs.txt
