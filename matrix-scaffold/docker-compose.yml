@@ -20,10 +20,16 @@ services:
       - VITE_DEV_SERVER=false
 
   worker:
-    image: node:18
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
     working_dir: /work
     volumes:
-      - ./backend:/work/backend
-      - ./worker:/work/worker
+      - ./backend:/work/backend:ro
+      - ./worker:/work/worker:ro
       - ./storage:/work/storage
-    command: sh -lc "cd /work/backend && npm ci && npm run worker"
+    environment:
+      - SNAPSHOT_MAX_CONCURRENCY=1
+      - SNAPSHOT_RETRY_COUNT=2
+      - SNAPSHOT_RETRY_DELAY_MS=1000
+    command: sh -lc "node /work/worker/worker.js"

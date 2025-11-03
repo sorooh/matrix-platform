@@ -115,7 +115,11 @@ server.get('/storage/:id/:filename', async (request, reply) => {
   if (S3_BUCKET) {
     const meta = getSnapshot(id)
     if (!meta) return reply.status(404).send({ error: 'not found' })
-    const url = filename.endsWith('.png') ? meta.pngUrl : meta.htmlUrl
+    const lower = filename.toLowerCase()
+    let url: string | undefined
+    if (lower.endsWith('.html')) url = meta.htmlUrl
+    else if (lower.includes('thumb')) url = meta.thumbUrl || meta.pngUrl
+    else url = meta.pngUrl
     if (!url) return reply.status(404).send({ error: 'not available' })
     return reply.redirect(url)
   }
@@ -123,8 +127,9 @@ server.get('/storage/:id/:filename', async (request, reply) => {
   const p = join(__dirname, '..', '..', 'storage', id, filename)
   if (!existsSync(p)) return reply.status(404).send({ error: 'not found' })
   const stream = createReadStream(p)
-  const ext = filename.split('.').pop()?.toLowerCase()
+  const ext = (filename.split('.').pop() || '').toLowerCase()
   if (ext === 'png') reply.header('Content-Type', 'image/png')
+  else if (ext === 'jpg' || ext === 'jpeg') reply.header('Content-Type', 'image/jpeg')
   else if (ext === 'html') reply.header('Content-Type', 'text/html; charset=utf-8')
   else reply.header('Content-Type', 'application/octet-stream')
   return reply.send(stream)

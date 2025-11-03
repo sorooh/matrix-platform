@@ -8,6 +8,11 @@ type SnapshotMeta = {
   createdAt: string
   pngPath?: string
   htmlPath?: string
+  thumbPath?: string
+  // optional URLs when artifacts are uploaded to S3 or remote storage
+  pngUrl?: string
+  htmlUrl?: string
+  thumbUrl?: string
   error?: string
 }
 

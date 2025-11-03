@@ -132,7 +132,13 @@ export default function App() {
                       <div style={{ fontSize: 12 }}>{s.createdAt ?? s.timestamp ?? s.id}</div>
                       <div style={{ marginTop: 6 }}>
                         {s.status === 'completed' ? (
-                          <img src={`/storage/${s.id}/preview.png`} alt="snapshot" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer' }} onClick={() => window.open(`/storage/${s.id}/preview.png`, '_blank')} />
+                          (() => {
+                            // prefer an S3-presigned URL if present (meta.thumbUrl), else use a local thumb if available,
+                            // otherwise fall back to the full preview image
+                            const src = s.thumbUrl ? s.thumbUrl : (s.thumbPath ? `/storage/${s.id}/thumb.jpg` : `/storage/${s.id}/preview.png`)
+                            const open = s.thumbUrl ? s.thumbUrl : `/storage/${s.id}/preview.png`
+                            return (<img src={src} alt="snapshot" style={{ width: 120, border: '1px solid #ddd', cursor: 'pointer' }} onClick={() => window.open(open, '_blank')} />)
+                          })()
                         ) : (
                           <div style={{ fontSize: 12 }}>{s.status ?? 'pending'}</div>
                         )}

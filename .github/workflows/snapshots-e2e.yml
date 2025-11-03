@@ -1,3 +1,76 @@
+name: CI - snapshots E2E
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  snapshots-e2e:
+    runs-on: ubuntu-latest
+    services:
+      # use docker-compose in a step instead of services to allow building custom worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and run compose
+        run: |
+          cd matrix-scaffold
+          docker-compose up -d --build
+          # give services a few seconds to start
+          sleep 6
+
+      - name: Wait for backend
+        run: |
+          # wait for backend to be ready
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sS http://localhost:3000/api/apps >/dev/null; then echo ok && break; fi
+            sleep 2
+          done
+
+      - name: Trigger snapshot job
+        run: |
+          set -e
+          id=$(curl -s -X POST http://localhost:3000/api/snapshot/admin-dashboard | jq -r '.id')
+          echo "snapshot id=$id"
+          # poll until status completed or timeout
+          for i in `seq 1 60`; do
+            status=$(curl -s http://localhost:3000/api/snapshots/$id | jq -r '.status') || status=""
+            echo "status=$status"
+            if [ "$status" = "completed" ]; then break; fi
+            sleep 1
+          done
+          # fetch meta
+          curl -s http://localhost:3000/api/snapshots/$id -o /tmp/snapshot_meta.json
+          cat /tmp/snapshot_meta.json
+
+      - name: Assert thumbnail exists
+        run: |
+          set -e
+          meta=/tmp/snapshot_meta.json
+          has_thumb=$(jq -r '.thumbPath // .thumbUrl // empty' $meta)
+          if [ -z "$has_thumb" ]; then echo "No thumbPath or thumbUrl in meta"; cat $meta; exit 2; fi
+          echo "thumb ok: $has_thumb"
+
+      - name: Collect storage artifacts
+        run: |
+          cd matrix-scaffold || exit 0
+          tar -czf /tmp/storage-artifacts.tar.gz storage || true
+        continue-on-error: true
+
+      - name: Upload storage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-storage
+          path: /tmp/storage-artifacts.tar.gz
+
+      - name: Teardown
+        if: always()
+        run: |
+          cd matrix-scaffold
+          docker-compose down --volumes --remove-orphans || true
 name: Snapshots E2E
 
 on:

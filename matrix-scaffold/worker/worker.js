@@ -7,6 +7,12 @@ try {
 } catch (e) {
   sharp = null
 }
+let Jimp
+try {
+  Jimp = require('jimp')
+} catch (e) {
+  Jimp = null
+}
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 
@@ -16,6 +22,23 @@ const s3Client = S3_BUCKET ? new S3Client({}) : null
 const base = path.join(__dirname, '..', 'matrix-scaffold', 'storage')
 const qDir = path.join(base, 'queue')
 const metaDir = path.join(base, 'meta')
+
+// configuration (env)
+const MAX_CONCURRENCY = Math.max(1, parseInt(process.env.SNAPSHOT_MAX_CONCURRENCY || '1', 10))
+const RETRY_COUNT = Math.max(0, parseInt(process.env.SNAPSHOT_RETRY_COUNT || '2', 10))
+const RETRY_DELAY_MS = Math.max(200, parseInt(process.env.SNAPSHOT_RETRY_DELAY_MS || '1000', 10))
+
+let stopping = false
+const inProgress = new Set()
+
+process.on('SIGINT', async () => {
+  console.log(JSON.stringify({ level: 'info', msg: 'shutdown.signal', signal: 'SIGINT' }))
+  stopping = true
+})
+process.on('SIGTERM', async () => {
+  console.log(JSON.stringify({ level: 'info', msg: 'shutdown.signal', signal: 'SIGTERM' }))
+  stopping = true
+})
 
 function listQueue() {
   try { return fs.readdirSync(qDir).filter(f => f.endsWith('.json')) } catch(e){ return [] }
@@ -37,104 +60,155 @@ async function processJob(file) {
     meta.status = 'processing'
     fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
   } catch(e){}
-
-  try {
-    const browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] })
-    const page = await browser.newPage()
-    const url = `http://localhost:3000/apps/${app}`
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 })
-    const png = path.join(outDir, 'preview.png')
-    const thumb = path.join(outDir, 'thumb.png')
-    const htmlPath = path.join(outDir, 'preview.html')
-    // full page screenshot
-    await page.screenshot({ path: png, fullPage: true })
-    // generate thumbnail using sharp if available, else fallback to viewport capture
-    if (sharp) {
+  const metaPath = path.join(metaDir, `${id}.json`)
+  let attempt = 0
+  let lastErr = null
+  while (attempt <= RETRY_COUNT) {
+    attempt += 1
+    let browser = null
+    try {
+      console.log(JSON.stringify({ level: 'info', msg: 'job.attempt_start', id, app, attempt }))
+      browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] })
+      const page = await browser.newPage()
+      const url = `http://localhost:3000/apps/${app}`
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 })
+      const png = path.join(outDir, 'preview.png')
+      const thumb = path.join(outDir, 'thumb.jpg')
+      const htmlPath = path.join(outDir, 'preview.html')
+      // full page screenshot
+      await page.screenshot({ path: png, fullPage: true })
+      // Always try to produce a proper JPEG thumbnail. Prefer sharp (native),
+      // fall back to Jimp (pure JS). If neither is available we'll write the
+      // viewport screenshot buffer as a last-resort file (may be PNG data).
       try {
-        await sharp(png).resize({ width: 400 }).toFile(thumb)
+        if (sharp) {
+          await sharp(png).resize({ width: 400 }).jpeg({ quality: 78 }).toFile(thumb)
+        } else {
+          await page.setViewport({ width: 400, height: 300 })
+          const buf = await page.screenshot({ fullPage: false })
+          if (Jimp) {
+            const img = await Jimp.read(buf)
+            await img.resize(400, Jimp.AUTO).quality(78).writeAsync(thumb)
+          } else {
+            // last resort: write raw buffer (likely PNG) to thumb path
+            fs.writeFileSync(thumb, buf)
+          }
+        }
       } catch (e) {
-        // fallback: try viewport capture
+        // If sharp processing failed after writing preview.png, try a secondary
+        // fallback: capture viewport and convert with available tool.
         try {
           await page.setViewport({ width: 400, height: 300 })
-          await page.screenshot({ path: thumb, fullPage: false })
+          const buf = await page.screenshot({ fullPage: false })
+          if (sharp) {
+            await sharp(buf).jpeg({ quality: 78 }).toFile(thumb)
+          } else if (Jimp) {
+            const img = await Jimp.read(buf)
+            await img.resize(400, Jimp.AUTO).quality(78).writeAsync(thumb)
+          } else {
+            fs.writeFileSync(thumb, buf)
+          }
         } catch (e2) {
-          // ignore
+          // ignore thumbnail errors
         }
       }
-    } else {
-      try {
-        await page.setViewport({ width: 400, height: 300 })
-        await page.screenshot({ path: thumb, fullPage: false })
-      } catch (e) {
-        // ignore thumbnail errors
-      }
-    }
-    const html = await page.content()
-    fs.writeFileSync(htmlPath, html, 'utf8')
-    await browser.close()
-    const metaPath = path.join(metaDir, `${id}.json`)
-    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
-  meta.status = 'completed'
-  meta.pngPath = png
-  meta.thumbPath = fs.existsSync(thumb) ? thumb : undefined
-  meta.htmlPath = htmlPath
+      const html = await page.content()
+      fs.writeFileSync(htmlPath, html, 'utf8')
+      try { await browser.close() } catch(e){}
+      const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+      meta.status = 'completed'
+      meta.pngPath = png
+      meta.thumbPath = fs.existsSync(thumb) ? thumb : undefined
+      meta.htmlPath = htmlPath
 
-    // if S3 configured, upload artifacts and attach URLs
-    if (s3Client && S3_BUCKET) {
-  const pngKey = `snapshots/${id}/preview.png`
-  const htmlKey = `snapshots/${id}/preview.html`
-  const thumbKey = `snapshots/${id}/thumb.png`
-      // upload png
-      const pngBody = fs.readFileSync(png)
-      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey, Body: pngBody, ContentType: 'image/png' }))
-      // upload html
-      const htmlBody = Buffer.from(html, 'utf8')
-      await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey, Body: htmlBody, ContentType: 'text/html; charset=utf-8' }))
-
-      // generate presigned urls (valid 1 hour) using GET presign
-      try {
-        const pngUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: pngKey }), { expiresIn: 3600 })
-        const htmlUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
-        meta.pngUrl = pngUrl
-        meta.htmlUrl = htmlUrl
-        if (fs.existsSync(thumb)) {
-          const thumbUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: thumbKey }), { expiresIn: 3600 })
-          meta.thumbUrl = thumbUrl
+      if (s3Client && S3_BUCKET) {
+        const pngKey = `snapshots/${id}/preview.png`
+        const htmlKey = `snapshots/${id}/preview.html`
+        const thumbKey = `snapshots/${id}/thumb.jpg`
+        const pngBody = fs.readFileSync(png)
+        await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: pngKey, Body: pngBody, ContentType: 'image/png' }))
+        const htmlBody = Buffer.from(html, 'utf8')
+        await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey, Body: htmlBody, ContentType: 'text/html; charset=utf-8' }))
+        try {
+          const pngUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: pngKey }), { expiresIn: 3600 })
+          const htmlUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: htmlKey }), { expiresIn: 3600 })
+          meta.pngUrl = pngUrl
+          meta.htmlUrl = htmlUrl
+          if (fs.existsSync(thumb)) {
+            const thumbUrl = await getSignedUrl(s3Client, new GetObjectCommand({ Bucket: S3_BUCKET, Key: thumbKey }), { expiresIn: 3600 })
+            meta.thumbUrl = thumbUrl
+          }
+        } catch (e) {
+          meta.pngUrl = `s3://${S3_BUCKET}/${pngKey}`
+          meta.htmlUrl = `s3://${S3_BUCKET}/${htmlKey}`
+          if (fs.existsSync(thumb)) meta.thumbUrl = `s3://${S3_BUCKET}/${thumbKey}`
         }
-      } catch (e) {
-        // if presign fails, fall back to object path
-        meta.pngUrl = `s3://${S3_BUCKET}/${pngKey}`
-        meta.htmlUrl = `s3://${S3_BUCKET}/${htmlKey}`
-        if (fs.existsSync(thumb)) meta.thumbUrl = `s3://${S3_BUCKET}/${thumbKey}`
       }
-    }
 
-    fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
-  } catch (err) {
-    const metaPath = path.join(metaDir, `${id}.json`)
+      fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
+      lastErr = null
+      break
+    } catch (err) {
+      lastErr = err
+      console.error(JSON.stringify({ level: 'warn', msg: 'job.attempt_failed', id, app, attempt, error: String(err) }))
+      try {
+        const m2 = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+        m2.lastAttempt = attempt
+        fs.writeFileSync(metaPath, JSON.stringify(m2), 'utf8')
+      } catch (e) {}
+      if (attempt <= RETRY_COUNT) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
+        continue
+      }
+    } finally {
+      // continue to next attempt or finish
+    }
+  }
+  if (lastErr) {
     try {
       const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
       meta.status = 'failed'
-      meta.error = String(err)
+      meta.error = String(lastErr)
       fs.writeFileSync(metaPath, JSON.stringify(meta), 'utf8')
     } catch(e){}
-  } finally {
-    // remove queue file
-    try { fs.unlinkSync(p) } catch(e){}
   }
+  // remove queue file
+  try { fs.unlinkSync(p) } catch(e){}
 }
 
 async function loop() {
-  while (true) {
+  while (!stopping) {
     const items = listQueue()
     if (items.length === 0) {
       await new Promise(r => setTimeout(r, 1000))
       continue
     }
     for (const f of items) {
-      try { await processJob(f) } catch(e){ console.error('job error', e) }
+      if (stopping) break
+      if (inProgress.has(f)) continue
+      // throttle concurrency
+      while (inProgress.size >= MAX_CONCURRENCY) {
+        await new Promise(r => setTimeout(r, 200))
+        if (stopping) break
+      }
+      inProgress.add(f)
+      // run in background
+      processJob(f).then(() => {
+        inProgress.delete(f)
+      }).catch((err) => {
+        inProgress.delete(f)
+        console.error(JSON.stringify({ level: 'error', msg: 'job.process_failed', file: f, error: String(err) }))
+      })
     }
+    // short delay before scanning again
+    await new Promise(r => setTimeout(r, 200))
   }
+  // graceful shutdown: wait for in-progress jobs
+  console.log(JSON.stringify({ level: 'info', msg: 'shutdown.waiting', active: inProgress.size }))
+  while (inProgress.size > 0) {
+    await new Promise(r => setTimeout(r, 500))
+  }
+  console.log(JSON.stringify({ level: 'info', msg: 'shutdown.complete' }))
 }
 
 console.log('Worker starting, watching', qDir)
