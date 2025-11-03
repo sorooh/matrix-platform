@@ -1,3 +1,92 @@
+name: CI - check-sharp-and-worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ ci/e2e-remote-runner-fix, feature/matrix-dashboard ]
+
+jobs:
+  check-worker-thumbnail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        working-directory: matrix-scaffold/backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Prepare static test app
+        run: |
+          mkdir -p matrix-scaffold/static/apps/testapp
+          cat > matrix-scaffold/static/apps/testapp/index.html <<'HTML'
+          <!doctype html>
+          <html>
+            <head><meta charset="utf-8"><title>Test App</title></head>
+            <body>
+              <h1>Snapshot Test App</h1>
+              <p id="time">TIME</p>
+              <script>document.getElementById('time').textContent = new Date().toString()</script>
+            </body>
+          </html>
+          HTML
+
+      - name: Start static server on :3000
+        run: |
+          pushd matrix-scaffold/static
+          python3 -m http.server 3000 &
+          echo $! > /tmp/static_pid
+          popd
+
+      - name: Start worker (background)
+        env:
+          NODE_PATH: ${{ github.workspace }}/matrix-scaffold/backend/node_modules
+        run: |
+          mkdir -p matrix-scaffold/storage/queue matrix-scaffold/storage/meta
+          # start worker with NODE_PATH pointing to backend node_modules so it finds puppeteer/sharp/jimp
+          (NODE_PATH=${{ github.workspace }}/matrix-scaffold/backend/node_modules node matrix-scaffold/worker/worker.js) &
+          echo $! > /tmp/worker_pid
+
+      - name: Enqueue snapshot job
+        run: |
+          id=$(node -e "console.log(require('crypto').randomBytes(8).toString('hex'))")
+          meta="{\"id\":\"$id\",\"app\":\"testapp\",\"status\":\"queued\"}"
+          echo "$meta" > matrix-scaffold/storage/meta/$id.json
+          echo "{\"id\":\"$id\",\"app\":\"testapp\"}" > matrix-scaffold/storage/queue/$id.json
+          echo $id > /tmp/snapshot_id
+
+      - name: Wait for worker to process
+        run: |
+          id=$(cat /tmp/snapshot_id)
+          echo "Waiting for snapshot $id"
+          for i in $(seq 1 40); do
+            if [ -f matrix-scaffold/storage/meta/$id.json ]; then
+              status=$(jq -r '.status' matrix-scaffold/storage/meta/$id.json)
+              echo "status=$status"
+              if [ "$status" = "completed" ] || [ "$status" = "failed" ]; then
+                break
+              fi
+            fi
+            sleep 2
+          done
+          cat matrix-scaffold/storage/meta/$id.json || true
+
+      - name: Upload snapshot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-artifacts
+          path: matrix-scaffold/storage
+
+      - name: Cleanup background processes
+        run: |
+          if [ -f /tmp/worker_pid ]; then kill $(cat /tmp/worker_pid) || true; fi
+          if [ -f /tmp/static_pid ]; then kill $(cat /tmp/static_pid) || true; fi
 name: CI - check native modules (sharp)
 
 on:
