@@ -29,6 +29,10 @@ export default function App() {
   // SSE listener for job events
   useEffect(() => {
     const es = new EventSource('/events')
+    let closed = false
+    es.addEventListener('open', () => {
+      // connection opened
+    })
     es.addEventListener('job.running', (e: any) => {
       try {
         const d = JSON.parse(e.data)
