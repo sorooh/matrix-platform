@@ -1,4 +1,115 @@
 #!/usr/bin/env node
+// Simple triage poster v2
+// Usage: node post-triage-comment-v2.js errors.txt
+// Environment:
+// - DRY_RUN=1 to only print the comment
+// - REPO owner/repo
+// - PR_NUMBER pull request number
+// - TRIAGE_POST_TOKEN optional PAT with repo or public_repo
+
+const fs = require('fs')
+const path = require('path')
+
+async function main() {
+  const arg = process.argv[2]
+  if (!arg) {
+    console.error('Usage: node post-triage-comment-v2.js <errors.txt>')
+    process.exitCode = 2
+    return
+  }
+  let txt
+  try {
+    txt = fs.readFileSync(arg, 'utf8')
+  } catch (e) {
+    console.error('Cannot read file', arg)
+    process.exitCode = 2
+    return
+  }
+
+  const repo = process.env.REPO || process.env.GITHUB_REPOSITORY || ''
+  const pr = process.env.PR_NUMBER || process.env.GITHUB_REF_NAME || '1'
+  const dry = !!process.env.DRY_RUN
+  const runUrl = process.env.GITHUB_RUN_URL || ''
+  const title = 'CI Triage Report'
+
+  const bodyLines = []
+  bodyLines.push('### CI Triage Report')
+  if (runUrl) bodyLines.push(`Workflow run: ${runUrl}`)
+  bodyLines.push('\n<details>')
+  bodyLines.push('\n<summary>Errors (click to expand)</summary>\n')
+  bodyLines.push('')
+  bodyLines.push('```')
+  bodyLines.push(txt.trim())
+  bodyLines.push('```')
+  bodyLines.push('\n</details>')
+  bodyLines.push('')
+  bodyLines.push('_This is an automated triage comment. Set `TRIAGE_POST_TOKEN` as a repository secret to enable real posting from CI._')
+
+  const body = bodyLines.join('\n')
+
+  if (dry) {
+    console.log('DRY_RUN=1 -> printing comment that would be posted:')
+    console.log('---')
+    console.log(body)
+    console.log('---')
+    return
+  }
+
+  const token = process.env.TRIAGE_POST_TOKEN
+  if (!token) {
+    console.error('TRIAGE_POST_TOKEN not set; run with DRY_RUN=1 to preview')
+    process.exitCode = 3
+    return
+  }
+
+  // post comment to PR
+  if (!repo) {
+    console.error('REPO not set')
+    process.exitCode = 4
+    return
+  }
+  const [owner, repoName] = repo.split('/')
+  const prNumber = pr
+  const url = `https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`
+
+  const payload = { body: `**${title}**\n\n${body}` }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `token ${token}`,
+        'User-Agent': 'triage-poster-script'
+      },
+      body: JSON.stringify(payload)
+    })
+    const data = await res.text()
+    if (res.status >= 200 && res.status < 300) {
+      console.log('Posted triage comment to PR', prNumber)
+      return
+    }
+    console.error('Failed to post comment', res.status, data)
+    process.exitCode = 5
+  } catch (e) {
+    console.error('Error posting comment', String(e))
+    process.exitCode = 6
+  }
+}
+
+// Node 18+ has global fetch. If not available, require('node-fetch') dynamically.
+if (typeof fetch === 'undefined') {
+  try {
+    global.fetch = require('node-fetch')
+  } catch (e) {
+    console.error('No fetch available; install Node 18+ or add node-fetch')
+    process.exitCode = 1
+    process.exit()
+  }
+}
+
+main()
+#!/usr/bin/env node
 // Robust poster using native https and retries so it works on Node 12+ without global fetch.
 // Improvements: accepts args/env fallbacks, reads GITHUB_EVENT_PATH to discover PR number,
 // includes a run URL when available, and sets a User-Agent header.
