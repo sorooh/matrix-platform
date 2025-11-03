@@ -1,23 +1,23 @@
 version: '3.8'
 services:
   backend:
-    image: node:18
-    working_dir: /work
+    build:
+      context: ./backend
+    working_dir: /app
     volumes:
-      - ./backend:/work/backend
-      - ./storage:/work/storage
+      - ./backend:/app
+      - ./storage:/app/storage
     ports:
       - "3000:3000"
-    command: sh -lc "cd /work/backend && npm ci && npm run dev"
+    command: sh -lc "npm ci && npm run dev"
 
   frontend:
-    image: node:18
-    working_dir: /work
-    volumes:
-      - ./frontend:/work/frontend
+    build:
+      context: ./frontend
     ports:
-      - "5173:5173"
-    command: sh -lc "cd /work/frontend && npm ci && npm run dev -- --host 0.0.0.0"
+      - "5173:80"
+    environment:
+      - VITE_DEV_SERVER=false
 
   worker:
     image: node:18
