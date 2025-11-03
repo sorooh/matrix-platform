@@ -69,9 +69,24 @@ server.get('/api/jobs/:id', async (request, reply) => {
   return job
 })
 
-server.get('/api/snapshot/:app', async (request, reply) => {
-  // return an empty list - simulation
-  return []
+import { enqueueSnapshot, getSnapshot } from './snapshots'
+
+server.post('/api/snapshot/:app', async (request, reply) => {
+  const app = (request.params as any).app
+  if (!app) return reply.status(400).send({ error: 'app required' })
+  try {
+    const id = await enqueueSnapshot(app)
+    return reply.status(202).send({ id })
+  } catch (err) {
+    return reply.status(500).send({ error: String(err) })
+  }
+})
+
+server.get('/api/snapshots/:id', async (request, reply) => {
+  const id = (request.params as any).id
+  const meta = getSnapshot(id)
+  if (!meta) return reply.status(404).send({ error: 'not found' })
+  return meta
 })
 
 server.get('/apps/:slug', async (request, reply) => {
