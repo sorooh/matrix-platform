@@ -18,9 +18,23 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install system packages (libvips, chromium deps)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential python3 ca-certificates libvips-dev libvips-tools libjpeg-dev libpng-dev wget gnupg fontconfig fonts-liberation libatk-bridge2.0-0 libgtk-3-0 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libpango-1.0-0
+          sudo rm -rf /var/lib/apt/lists/*
+
       - name: Install backend dependencies
         working-directory: matrix-scaffold/backend
         run: npm ci --no-audit --no-fund
+
+      - name: Verify native modules availability (sharp/jimp/puppeteer)
+        working-directory: matrix-scaffold/backend
+        run: |
+          node -e "try{require('sharp'); console.log('sharp: OK')}catch(e){console.log('sharp: MISSING', e && e.message)}"
+          node -e "try{require('jimp'); console.log('jimp: OK')}catch(e){console.log('jimp: MISSING', e && e.message)}"
+          node -e "try{require('puppeteer'); console.log('puppeteer: OK')}catch(e){console.log('puppeteer: MISSING', e && e.message)}"
 
       - name: Prepare static test app
         run: |

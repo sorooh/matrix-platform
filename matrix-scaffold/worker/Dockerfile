@@ -8,7 +8,7 @@ RUN apt-get update \
 		build-essential \
 		python3 \
 		ca-certificates \
-		libvips-dev \
+		libvips-dev libvips-tools \
 		libjpeg-dev \
 		libpng-dev \
 		wget \
