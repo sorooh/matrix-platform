@@ -1,0 +1,60 @@
+name: CI - backend tests
+
+on:
+  pull_request:
+  push:
+    branches: [ main, ci/e2e-remote-runner-fix, feature/matrix-dashboard ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies (dev)
+        working-directory: matrix-scaffold/backend
+        run: npm ci
+
+      - name: Ensure storage folders
+        run: |
+          mkdir -p matrix-scaffold/storage/queue matrix-scaffold/storage/meta
+
+      - name: Start backend (dev)
+        working-directory: matrix-scaffold/backend
+        run: |
+          npm run dev &
+          echo $! > /tmp/backend_pid
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in {1..20}; do
+            if curl -sSf http://localhost:3000/health >/dev/null 2>&1; then
+              echo "backend ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend did not become ready"; exit 1
+
+      - name: Run tests
+        working-directory: matrix-scaffold
+        run: |
+          # run jest from backend package to pick up test script
+          (cd backend && npm test)
+
+      - name: Upload test artifacts (storage)
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-artifacts
+          path: matrix-scaffold/storage
+
+      - name: Cleanup backend
+        run: |
+          if [ -f /tmp/backend_pid ]; then kill $(cat /tmp/backend_pid) || true; fi
