@@ -6200,6 +6200,212 @@ server.get('/api/admin/websocket/statistics', async (request, reply) => {
   }
 })
 
+// Phase 7.3.1: Advanced Error Handling API Endpoints
+server.get('/api/admin/errors', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+    const severity = query?.severity
+    const resolved = query?.resolved === 'true' ? true : query?.resolved === 'false' ? false : undefined
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const errors = advancedErrorHandling.getErrors(type, severity, resolved, limit)
+
+    return {
+      success: true,
+      errors,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/errors' })
+    return reply.status(500).send({ error: 'Failed to get errors' })
+  }
+})
+
+server.get('/api/admin/errors/:errorId', async (request, reply) => {
+  try {
+    const errorId = (request.params as any).errorId
+
+    const error = advancedErrorHandling.getError(errorId)
+
+    if (!error) {
+      return reply.status(404).send({ error: 'Error not found' })
+    }
+
+    return {
+      success: true,
+      error,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/errors/:errorId' })
+    return reply.status(500).send({ error: 'Failed to get error' })
+  }
+})
+
+server.get('/api/admin/errors/:errorId/recoveries', async (request, reply) => {
+  try {
+    const errorId = (request.params as any).errorId
+    const query = request.query as any
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const recoveries = advancedErrorHandling.getRecoveries(errorId, limit)
+
+    return {
+      success: true,
+      recoveries,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/errors/:errorId/recoveries' })
+    return reply.status(500).send({ error: 'Failed to get recoveries' })
+  }
+})
+
+server.get('/api/admin/errors/statistics', async (request, reply) => {
+  try {
+    const stats = advancedErrorHandling.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/errors/statistics' })
+    return reply.status(500).send({ error: 'Failed to get error statistics' })
+  }
+})
+
+// Phase 7.3.1: Advanced Monitoring API Endpoints
+server.get('/api/admin/monitoring/alerts', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const severity = query?.severity
+    const acknowledged = query?.acknowledged === 'true' ? true : query?.acknowledged === 'false' ? false : undefined
+    const resolved = query?.resolved === 'true' ? true : query?.resolved === 'false' ? false : undefined
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const alerts = advancedMonitoring.getAlerts(severity, acknowledged, resolved, limit)
+
+    return {
+      success: true,
+      alerts,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/monitoring/alerts' })
+    return reply.status(500).send({ error: 'Failed to get alerts' })
+  }
+})
+
+server.post('/api/admin/monitoring/alerts/:alertId/acknowledge', async (request, reply) => {
+  try {
+    const alertId = (request.params as any).alertId
+    const body = request.body as any
+    const userId = body?.userId || 'system'
+
+    advancedMonitoring.acknowledgeAlert(alertId, userId)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/monitoring/alerts/:alertId/acknowledge' })
+    return reply.status(500).send({ error: 'Failed to acknowledge alert' })
+  }
+})
+
+server.post('/api/admin/monitoring/alerts/:alertId/resolve', async (request, reply) => {
+  try {
+    const alertId = (request.params as any).alertId
+
+    advancedMonitoring.resolveAlert(alertId)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/monitoring/alerts/:alertId/resolve' })
+    return reply.status(500).send({ error: 'Failed to resolve alert' })
+  }
+})
+
+server.get('/api/admin/monitoring/rules', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const enabled = query?.enabled === 'true' ? true : query?.enabled === 'false' ? false : undefined
+
+    const rules = advancedMonitoring.getAlertRules(enabled)
+
+    return {
+      success: true,
+      rules,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/monitoring/rules' })
+    return reply.status(500).send({ error: 'Failed to get alert rules' })
+  }
+})
+
+server.get('/api/admin/monitoring/statistics', async (request, reply) => {
+  try {
+    const stats = advancedMonitoring.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/monitoring/statistics' })
+    return reply.status(500).send({ error: 'Failed to get monitoring statistics' })
+  }
+})
+
+// Phase 7.3.1: Advanced Caching API Endpoints
+server.get('/api/admin/cache/statistics', async (request, reply) => {
+  try {
+    const stats = advancedAdminCache.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/cache/statistics' })
+    return reply.status(500).send({ error: 'Failed to get cache statistics' })
+  }
+})
+
+server.post('/api/admin/cache/invalidate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const tags = body?.tags || []
+
+    if (!Array.isArray(tags) || tags.length === 0) {
+      return reply.status(400).send({ error: 'tags array required' })
+    }
+
+    const invalidated = await advancedAdminCache.invalidateByTags(tags)
+
+    return {
+      success: true,
+      invalidated,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/cache/invalidate' })
+    return reply.status(500).send({ error: 'Failed to invalidate cache' })
+  }
+})
+
+server.post('/api/admin/cache/clear', async (request, reply) => {
+  try {
+    await advancedAdminCache.clear()
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/cache/clear' })
+    return reply.status(500).send({ error: 'Failed to clear cache' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -6538,8 +6744,20 @@ const start = async () => {
       await adminDatabase.initialize()
       logInfo('✅ Admin Database initialized')
 
+      // Initialize Advanced Error Handling
+      await advancedErrorHandling.initialize()
+      logInfo('✅ Advanced Error Handling initialized')
+
+      // Initialize Advanced Monitoring
+      await advancedMonitoring.initialize()
+      logInfo('✅ Advanced Monitoring initialized')
+
+      // Initialize Advanced Admin Cache
+      await advancedAdminCache.initialize()
+      logInfo('✅ Advanced Admin Cache initialized')
+
       // Initialize WebSocket Server (after server.listen)
-      logInfo('✅ Phase 7.3.1 Professional Enhancements initialized (30%)')
+      logInfo('✅ Phase 7.3.1 Professional Enhancements initialized (70%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.3.1 initialization' })
       logInfo('⚠️ Phase 7.3.1 not available, continuing without it')
