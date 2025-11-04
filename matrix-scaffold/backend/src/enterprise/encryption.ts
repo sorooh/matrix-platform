@@ -1,55 +1,78 @@
 /**
- * Encryption Utilities
- * Global-Ready Architecture with data encryption
+ * Encryption System
+ * Phase 2: Enterprise Features - Encryption
+ * Global-Ready Architecture
  */
 
 import crypto from 'crypto'
 import { logger } from '../config/logger'
 import { config } from '../config/app'
 
-export function encrypt(text: string): string {
-  if (!config.security.encryptionKey || !config.security.encryptionIV) {
-    logger.warn('Encryption keys not configured, returning plain text')
-    return text
-  }
+const algorithm = 'aes-256-gcm'
 
+function getEncryptionKey(): Buffer {
+  if (!config.security.encryptionKey) {
+    throw new Error('ENCRYPTION_KEY not configured')
+  }
+  return Buffer.from(config.security.encryptionKey, 'hex')
+}
+
+function getEncryptionIV(): Buffer {
+  if (!config.security.encryptionIV) {
+    throw new Error('ENCRYPTION_IV not configured')
+  }
+  return Buffer.from(config.security.encryptionIV, 'hex')
+}
+
+export function encrypt(text: string): string {
   try {
-    const key = Buffer.from(config.security.encryptionKey, 'hex')
-    const iv = Buffer.from(config.security.encryptionIV, 'hex')
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
+    const key = getEncryptionKey()
+    const iv = getEncryptionIV()
+    const cipher = crypto.createCipheriv(algorithm, key, iv)
 
     let encrypted = cipher.update(text, 'utf8', 'hex')
     encrypted += cipher.final('hex')
 
-    return encrypted
+    const authTag = cipher.getAuthTag()
+
+    // Combine IV, authTag, and encrypted data
+    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`
   } catch (error: any) {
-    logger.error('Encryption failed:', error)
+    logger.error('encrypt error:', error)
     throw error
   }
 }
 
 export function decrypt(encryptedText: string): string {
-  if (!config.security.encryptionKey || !config.security.encryptionIV) {
-    logger.warn('Encryption keys not configured, returning plain text')
-    return encryptedText
-  }
-
   try {
-    const key = Buffer.from(config.security.encryptionKey, 'hex')
-    const iv = Buffer.from(config.security.encryptionIV, 'hex')
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+    const parts = encryptedText.split(':')
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted format')
+    }
 
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8')
+    const [ivHex, authTagHex, encrypted] = parts
+    const key = getEncryptionKey()
+    const iv = Buffer.from(ivHex, 'hex')
+    const authTag = Buffer.from(authTagHex, 'hex')
+
+    const decipher = crypto.createDecipheriv(algorithm, key, iv)
+    decipher.setAuthTag(authTag)
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
 
     return decrypted
   } catch (error: any) {
-    logger.error('Decryption failed:', error)
+    logger.error('decrypt error:', error)
     throw error
   }
 }
 
-export function hashData(data: string): string {
-  return crypto.createHash('sha256').update(data).digest('hex')
+export function hashSensitiveData(data: string): string {
+  try {
+    return crypto.createHash('sha256').update(data).digest('hex')
+  } catch (error: any) {
+    logger.error('hashSensitiveData error:', error)
+    throw error
+  }
 }
-

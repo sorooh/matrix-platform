@@ -99,7 +99,8 @@ export const config = {
     enableRedis: process.env.ENABLE_REDIS !== 'false',
     enableSentry: process.env.ENABLE_SENTRY !== 'false',
     enableSlack: process.env.ENABLE_SLACK !== 'false',
-    enableGitHub: process.env.ENABLE_GITHUB !== 'false'
+    enableGitHub: process.env.ENABLE_GITHUB !== 'false',
+    enableAI: process.env.ENABLE_AI !== 'false'
   }
 }
 

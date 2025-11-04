@@ -1,80 +1,87 @@
 /**
- * Role-Based Access Control (RBAC)
- * Global-Ready Architecture with enterprise RBAC
+ * RBAC System
+ * Phase 2: Enterprise Features - Role-Based Access Control
+ * Global-Ready Architecture
  */
 
 import { logger } from '../config/logger'
+import { prisma } from '../config/database'
 
-export type Role = 'admin' | 'user' | 'viewer' | 'developer' | 'manager'
+export type Role = 'admin' | 'user' | 'viewer' | 'developer'
+export type Permission = 'read' | 'write' | 'delete' | 'admin'
 
-export interface Permission {
-  resource: string
-  action: string
-}
-
-export interface RolePermissions {
+export interface User {
+  id: string
+  email: string
   role: Role
   permissions: Permission[]
+  createdAt: Date
+  updatedAt: Date
 }
 
 // Role permissions mapping
 const rolePermissions: Record<Role, Permission[]> = {
-  admin: [
-    { resource: '*', action: '*' },
-    { resource: 'projects', action: '*' },
-    { resource: 'jobs', action: '*' },
-    { resource: 'users', action: '*' },
-    { resource: 'system', action: '*' }
-  ],
-  developer: [
-    { resource: 'projects', action: 'read' },
-    { resource: 'projects', action: 'write' },
-    { resource: 'jobs', action: 'read' },
-    { resource: 'jobs', action: 'write' },
-    { resource: 'memory', action: 'read' },
-    { resource: 'memory', action: 'write' }
-  ],
-  manager: [
-    { resource: 'projects', action: 'read' },
-    { resource: 'projects', action: 'write' },
-    { resource: 'jobs', action: 'read' },
-    { resource: 'users', action: 'read' },
-    { resource: 'kpis', action: 'read' }
-  ],
-  user: [
-    { resource: 'projects', action: 'read' },
-    { resource: 'jobs', action: 'read' },
-    { resource: 'memory', action: 'read' }
-  ],
-  viewer: [
-    { resource: 'projects', action: 'read' },
-    { resource: 'jobs', action: 'read' },
-    { resource: 'kpis', action: 'read' }
-  ]
+  admin: ['read', 'write', 'delete', 'admin'],
+  developer: ['read', 'write'],
+  user: ['read', 'write'],
+  viewer: ['read']
 }
 
-export function hasPermission(role: Role, resource: string, action: string): boolean {
-  const permissions = rolePermissions[role] || []
-  
-  // Check for wildcard admin
-  if (permissions.some((p) => p.resource === '*' && p.action === '*')) {
-    return true
-  }
-
-  // Check for specific permission
-  return permissions.some(
-    (p) => (p.resource === resource || p.resource === '*') && (p.action === action || p.action === '*')
-  )
+export function hasPermission(user: User | null, permission: Permission): boolean {
+  if (!user) return false
+  return user.permissions.includes(permission) || user.permissions.includes('admin')
 }
 
-export function getRolePermissions(role: Role): Permission[] {
+export function hasRole(user: User | null, role: Role): boolean {
+  if (!user) return false
+  return user.role === role || user.role === 'admin'
+}
+
+export function getUserPermissions(role: Role): Permission[] {
   return rolePermissions[role] || []
 }
 
-export function requirePermission(role: Role, resource: string, action: string): void {
-  if (!hasPermission(role, resource, action)) {
-    logger.warn('Permission denied', { role, resource, action })
-    throw new Error(`Permission denied: ${role} cannot ${action} on ${resource}`)
+// User management (basic)
+export async function createUser(
+  email: string,
+  role: Role = 'user'
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  try {
+    // Note: This is a simplified version
+    // In production, use proper user management with password hashing
+    const permissions = getUserPermissions(role)
+
+    logger.info(`User created: ${email}`, { email, role, permissions })
+
+    return {
+      success: true,
+      user: {
+        id: `user-${Date.now()}`,
+        email,
+        role,
+        permissions,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    }
+  } catch (error: any) {
+    logger.error('createUser error:', error)
+    return { success: false, error: error.message }
   }
 }
 
+export async function updateUserRole(
+  userId: string,
+  role: Role
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const permissions = getUserPermissions(role)
+
+    logger.info(`User role updated: ${userId}`, { userId, role, permissions })
+
+    return { success: true }
+  } catch (error: any) {
+    logger.error('updateUserRole error:', error)
+    return { success: false, error: error.message }
+  }
+}

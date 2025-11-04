@@ -1,84 +1,151 @@
 /**
  * Enhanced GitHub Integration
- * Global-Ready Architecture with improved GitHub integration
+ * Phase 2: Integration Hub - Enhanced GitHub integration
+ * Global-Ready Architecture
  */
 
+import { Octokit } from '@octokit/rest'
 import { logger } from '../../config/logger'
 import { config } from '../../config/app'
-import { createIssueComment } from '../github'
 
-export interface GitHubIssueComment {
-  owner: string
-  repo: string
-  issueNumber: number
-  body: string
-}
+// Enhanced GitHub client
+let octokit: Octokit | null = null
 
-export interface GitHubPRComment {
-  owner: string
-  repo: string
-  pullNumber: number
-  body: string
-}
-
-export async function createGitHubIssueComment(comment: GitHubIssueComment): Promise<boolean> {
-  if (!config.features.enableGitHub || !config.integrations.github.token) {
-    logger.debug('GitHub integration disabled or token not configured')
-    return false
+function getGitHubClient(): Octokit | null {
+  if (!config.integrations.github.token) {
+    logger.warn('GitHub token not configured')
+    return null
   }
 
+  if (!octokit) {
+    octokit = new Octokit({
+      auth: config.integrations.github.token
+    })
+  }
+
+  return octokit
+}
+
+export async function createIssue(
+  title: string,
+  body: string,
+  labels?: string[]
+): Promise<{ success: boolean; issueNumber?: number; error?: string }> {
   try {
-    const result = await createIssueComment({
-      owner: comment.owner,
-      repo: comment.repo,
-      issueNumber: comment.issueNumber,
-      body: comment.body
-    })
-
-    logger.info('GitHub issue comment created', {
-      owner: comment.owner,
-      repo: comment.repo,
-      issueNumber: comment.issueNumber
-    })
-
-    return true
-  } catch (error: any) {
-    logger.error('Failed to create GitHub issue comment:', error)
-    return false
-  }
-}
-
-export async function createGitHubPRComment(comment: GitHubPRComment): Promise<boolean> {
-  // Use issue comment API for PR comments (GitHub treats PRs as issues)
-  return createGitHubIssueComment({
-    owner: comment.owner,
-    repo: comment.repo,
-    issueNumber: comment.pullNumber,
-    body: comment.body
-  })
-}
-
-export async function getGitHubPR(owner: string, repo: string, pullNumber: number): Promise<any> {
-  if (!config.features.enableGitHub || !config.integrations.github.token) {
-    throw new Error('GitHub integration not configured')
-  }
-
-  try {
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
-      headers: {
-        Authorization: `Bearer ${config.integrations.github.token}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+    const client = getGitHubClient()
+    if (!client) {
+      return { success: false, error: 'GitHub not configured' }
     }
 
-    return await response.json()
+    const owner = config.integrations.github.owner
+    const repo = config.integrations.github.repo
+
+    if (!owner || !repo) {
+      return { success: false, error: 'GitHub owner/repo not configured' }
+    }
+
+    const response = await client.rest.issues.create({
+      owner,
+      repo,
+      title,
+      body,
+      labels: labels || []
+    })
+
+    logger.info(`GitHub issue created: ${response.data.number}`, {
+      issueNumber: response.data.number,
+      title
+    })
+
+    return {
+      success: true,
+      issueNumber: response.data.number
+    }
   } catch (error: any) {
-    logger.error('Failed to get GitHub PR:', error)
-    throw error
+    logger.error('GitHub createIssue error:', error)
+    return { success: false, error: error.message }
   }
 }
 
+export async function createPullRequest(
+  title: string,
+  body: string,
+  head: string,
+  base: string = 'main'
+): Promise<{ success: boolean; prNumber?: number; error?: string }> {
+  try {
+    const client = getGitHubClient()
+    if (!client) {
+      return { success: false, error: 'GitHub not configured' }
+    }
+
+    const owner = config.integrations.github.owner
+    const repo = config.integrations.github.repo
+
+    if (!owner || !repo) {
+      return { success: false, error: 'GitHub owner/repo not configured' }
+    }
+
+    const response = await client.rest.pulls.create({
+      owner,
+      repo,
+      title,
+      body,
+      head,
+      base
+    })
+
+    logger.info(`GitHub PR created: ${response.data.number}`, {
+      prNumber: response.data.number,
+      title
+    })
+
+    return {
+      success: true,
+      prNumber: response.data.number
+    }
+  } catch (error: any) {
+    logger.error('GitHub createPullRequest error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getRepositoryInfo(): Promise<{
+  success: boolean
+  info?: any
+  error?: string
+}> {
+  try {
+    const client = getGitHubClient()
+    if (!client) {
+      return { success: false, error: 'GitHub not configured' }
+    }
+
+    const owner = config.integrations.github.owner
+    const repo = config.integrations.github.repo
+
+    if (!owner || !repo) {
+      return { success: false, error: 'GitHub owner/repo not configured' }
+    }
+
+    const response = await client.rest.repos.get({
+      owner,
+      repo
+    })
+
+    return {
+      success: true,
+      info: {
+        name: response.data.name,
+        description: response.data.description,
+        stars: response.data.stargazers_count,
+        forks: response.data.forks_count,
+        language: response.data.language,
+        updatedAt: response.data.updated_at
+      }
+    }
+  } catch (error: any) {
+    logger.error('GitHub getRepositoryInfo error:', error)
+    return { success: false, error: error.message }
+  }
+}

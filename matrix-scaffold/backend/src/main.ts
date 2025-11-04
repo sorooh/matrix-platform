@@ -856,6 +856,15 @@ const start = async () => {
       }
     }, 45000)
 
+    // Start self-evolving analysis
+    try {
+      const { startSelfEvolvingAnalysis } = require('./core/selfEvolving')
+      startSelfEvolvingAnalysis(3600000) // Every hour
+      logInfo('✅ Self-evolving analysis started')
+    } catch (error) {
+      logError(error as Error, { context: 'self-evolving setup' })
+    }
+
     // Periodic system evolution
     setInterval(async () => {
       try {

@@ -1,42 +1,64 @@
 /**
  * Authentication Middleware
- * Global-Ready Architecture with JWT authentication
+ * Phase 2: Enterprise Features - Authentication middleware
+ * Global-Ready Architecture
  */
 
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { verifyToken } from '../enterprise/auth'
+import { verifyToken, extractTokenFromHeader, AuthToken } from '../enterprise/auth'
+import { hasPermission, Permission } from '../enterprise/rbac'
 import { logger } from '../config/logger'
+import { sendError } from '../utils/response'
 
-export async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  // Skip authentication for public endpoints
-  const publicPaths = ['/health', '/metrics', '/api/agents/chat']
-  if (publicPaths.some((path) => request.url.startsWith(path))) {
-    return
-  }
-
-  // Get token from header
-  const authHeader = request.headers.authorization
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    reply.status(401).send({
-      error: 'Unauthorized',
-      message: 'Authentication required'
-    })
-    return
-  }
-
-  const token = authHeader.substring(7)
-  const decoded = verifyToken(token)
-
-  if (!decoded) {
-    reply.status(401).send({
-      error: 'Unauthorized',
-      message: 'Invalid or expired token'
-    })
-    return
-  }
-
-  // Attach user info to request
-  ;(request as any).user = decoded
-  logger.debug('User authenticated', { userId: decoded.userId, email: decoded.email })
+export interface AuthenticatedRequest extends FastifyRequest {
+  user?: AuthToken
 }
 
+export function requireAuth(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+  try {
+    const authHeader = request.headers.authorization
+    const token = extractTokenFromHeader(authHeader)
+
+    if (!token) {
+      sendError(reply, 'Unauthorized', 'Authentication required', 401)
+      return
+    }
+
+    const user = verifyToken(token)
+    if (!user) {
+      sendError(reply, 'Unauthorized', 'Invalid or expired token', 401)
+      return
+    }
+
+    ;(request as AuthenticatedRequest).user = user
+    done()
+  } catch (error: any) {
+    logger.error('Auth middleware error:', error)
+    sendError(reply, 'Unauthorized', 'Authentication failed', 401)
+  }
+}
+
+export function requirePermission(permission: Permission) {
+  return (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
+    try {
+      const authRequest = request as AuthenticatedRequest
+      const user = authRequest.user
+
+      if (!user) {
+        sendError(reply, 'Unauthorized', 'Authentication required', 401)
+        return
+      }
+
+      const userPermissions = user.permissions || []
+      if (!userPermissions.includes(permission) && !userPermissions.includes('admin')) {
+        sendError(reply, 'Forbidden', `Permission '${permission}' required`, 403)
+        return
+      }
+
+      done()
+    } catch (error: any) {
+      logger.error('Permission middleware error:', error)
+      sendError(reply, 'Forbidden', 'Permission check failed', 403)
+    }
+  }
+}

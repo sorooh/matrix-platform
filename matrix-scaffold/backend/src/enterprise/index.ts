@@ -1,9 +1,9 @@
 /**
  * Enterprise Features Index
- * Global-Ready Architecture with enterprise capabilities
+ * Phase 2: Enterprise Features
+ * Global-Ready Architecture
  */
 
-export * from './auth'
 export * from './rbac'
+export * from './auth'
 export * from './encryption'
-
