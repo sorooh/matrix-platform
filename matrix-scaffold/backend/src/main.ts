@@ -5985,7 +5985,11 @@ const start = async () => {
       await performanceAndAnalyticsBoard.initialize()
       logInfo('✅ Performance & Analytics Board initialized')
 
-      logInfo('✅ Phase 7.3 Admin Dashboard & Integration Control initialized (67%)')
+      // Initialize User Access & Role System
+      await userAccessAndRoleSystem.initialize()
+      logInfo('✅ User Access & Role System initialized')
+
+      logInfo('✅ Phase 7.3 Admin Dashboard & Integration Control initialized (83%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.3 initialization' })
       logInfo('⚠️ Phase 7.3 not available, continuing without it')
