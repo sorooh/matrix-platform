@@ -11,6 +11,7 @@ import { db } from '../core/storage'
 import { searchMemory } from '../core/memory'
 import { tasks } from '../core/tasks'
 import { eventBus } from '../core/eventBus'
+import { agentMemory } from './agentMemory'
 
 export interface AgentExecution {
   agentType: AgentType
@@ -63,6 +64,13 @@ export class AgentRunner {
         toolsUsed: this.toolsUsed,
         duration,
         timestamp
+      }
+
+      // Store in memory
+      try {
+        await agentMemory.storeExecution(execution, context.projectId)
+      } catch (error) {
+        logger.warn('Failed to store agent execution in memory:', error)
       }
 
       // Publish event

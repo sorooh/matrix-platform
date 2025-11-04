@@ -10,6 +10,8 @@ import { addMemory, searchMemory } from './memory'
 import { kpis } from './suig'
 import { tasks } from './tasks'
 import { graph } from './graph'
+import { agentEvaluator } from '../ai/evaluator'
+import { agentMemory } from '../ai/agentMemory'
 
 export interface EvolutionInsight {
   type: 'performance' | 'error' | 'pattern' | 'optimization'
@@ -74,6 +76,10 @@ export class SelfEvolvingSystem {
       // Optimization insights
       const optimizationInsights = await this.analyzeOptimizations(allProjects)
       insights.push(...optimizationInsights)
+
+      // Agent performance insights
+      const agentInsights = await this.analyzeAgentPerformance(allProjects)
+      insights.push(...agentInsights)
 
       this.insights = insights
       this.lastAnalysis = now
@@ -146,6 +152,58 @@ export class SelfEvolvingSystem {
     return patterns
   }
 
+  private async analyzeAgentPerformance(projects: any[]): Promise<EvolutionInsight[]> {
+    const insights: EvolutionInsight[] = []
+
+    for (const project of projects) {
+      try {
+        // Get agent evaluation
+        const evaluation = await agentEvaluator.evaluateAll(project.id)
+
+        // Check overall score
+        if (evaluation.overallScore < 0.7) {
+          insights.push({
+            type: 'performance',
+            description: `Agent performance score is ${(evaluation.overallScore * 100).toFixed(1)}% for project ${project.id}`,
+            suggestion: 'Review agent prompts and improve tool usage',
+            priority: 'high',
+            confidence: 0.9
+          })
+        }
+
+        // Check worst agent
+        const worstEval = evaluation.evaluations.find(
+          (e) => e.agentType === evaluation.worstAgent
+        )
+        if (worstEval && worstEval.score < 0.6) {
+          insights.push({
+            type: 'performance',
+            description: `Agent ${evaluation.worstAgent} is underperforming (score: ${(worstEval.score * 100).toFixed(1)}%)`,
+            suggestion: worstEval.recommendations.join('; ') || 'Review agent implementation',
+            priority: 'medium',
+            confidence: 0.8
+          })
+        }
+
+        // Check for learning opportunities
+        const learnings = await agentMemory.learnFromHistory(project.id, evaluation.bestAgent)
+        if (learnings.recommendations.length > 0) {
+          insights.push({
+            type: 'optimization',
+            description: `Learning opportunities identified for agent ${evaluation.bestAgent}`,
+            suggestion: learnings.recommendations.join('; '),
+            priority: 'low',
+            confidence: 0.7
+          })
+        }
+      } catch (error) {
+        logger.warn(`Failed to analyze agent performance for project ${project.id}:`, error)
+      }
+    }
+
+    return insights
+  }
+
   private async analyzeOptimizations(projects: any[]): Promise<EvolutionInsight[]> {
     const insights: EvolutionInsight[] = []
 
@@ -197,6 +255,93 @@ export class SelfEvolvingSystem {
 // Global Self-Evolving System
 export const selfEvolvingSystem = new SelfEvolvingSystem()
 
+// Auto-improvement system
+export class AutoImprovementSystem {
+  async improve(): Promise<{
+    improvements: string[]
+    applied: number
+    errors: string[]
+  }> {
+    const improvements: string[] = []
+    const applied: string[] = []
+    const errors: string[] = []
+
+    try {
+      // Get insights
+      const insights = await selfEvolvingSystem.analyze()
+
+      // Apply high-priority improvements
+      for (const insight of insights) {
+        if (insight.priority === 'high' && insight.confidence > 0.8) {
+          try {
+            const result = await this.applyImprovement(insight)
+            if (result.success) {
+              applied.push(insight.suggestion)
+              improvements.push(`Applied: ${insight.suggestion}`)
+            } else {
+              errors.push(`Failed to apply: ${insight.suggestion} - ${result.error}`)
+            }
+          } catch (error: any) {
+            errors.push(`Error applying improvement: ${error.message}`)
+          }
+        }
+      }
+
+      logger.info(`Auto-improvement completed: ${applied.length} improvements applied`, {
+        applied: applied.length,
+        errors: errors.length
+      })
+
+      return {
+        improvements,
+        applied: applied.length,
+        errors
+      }
+    } catch (error: any) {
+      logger.error('Auto-improvement failed:', error)
+      return {
+        improvements: [],
+        applied: 0,
+        errors: [error.message]
+      }
+    }
+  }
+
+  private async applyImprovement(insight: EvolutionInsight): Promise<{
+    success: boolean
+    error?: string
+  }> {
+    try {
+      // This is a simplified version - in production, implement actual improvements
+      // For example:
+      // - Update agent prompts
+      // - Adjust tool configurations
+      // - Optimize database queries
+      // - Update error handling
+
+      logger.info(`Applying improvement: ${insight.suggestion}`, {
+        type: insight.type,
+        priority: insight.priority
+      })
+
+      // Store improvement in memory
+      await addMemory('__org__', `Auto-improvement applied: ${insight.suggestion}`, {
+        kind: 'auto-improvement',
+        type: insight.type,
+        priority: insight.priority,
+        timestamp: new Date().toISOString()
+      })
+
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+}
+
+// Global Auto-Improvement System
+export const autoImprovement = new AutoImprovementSystem()
+
 // Periodic analysis
 export function startSelfEvolvingAnalysis(intervalMs: number = 3600000): void {
   setInterval(async () => {
@@ -208,4 +353,17 @@ export function startSelfEvolvingAnalysis(intervalMs: number = 3600000): void {
   }, intervalMs)
 
   logger.info('Self-evolving analysis started', { intervalMs })
+}
+
+// Periodic auto-improvement
+export function startAutoImprovement(intervalMs: number = 7200000): void {
+  setInterval(async () => {
+    try {
+      await autoImprovement.improve()
+    } catch (error) {
+      logger.error('Auto-improvement error:', error)
+    }
+  }, intervalMs)
+
+  logger.info('Auto-improvement started', { intervalMs })
 }

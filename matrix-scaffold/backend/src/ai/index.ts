@@ -7,4 +7,7 @@
 export * from './agents'
 export * from './tools'
 export * from './agentRunner'
+export * from './orchestrator'
+export * from './agentMemory'
+export * from './evaluator'
 

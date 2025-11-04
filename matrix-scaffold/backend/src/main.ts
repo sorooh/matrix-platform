@@ -605,6 +605,10 @@ server.post('/api/poke/:slug', async (request, reply) => {
 // Real AI Agents API
 import { agents, initializeAgents } from './ai/agents'
 import { getAIProvider } from './ai/providers'
+import { orchestrator } from './ai/orchestrator'
+import { agentMemory } from './ai/agentMemory'
+import { agentEvaluator } from './ai/evaluator'
+import { AgentType } from './ai/agents'
 
 // Initialize AI agents on startup
 initializeAgents()
@@ -699,6 +703,110 @@ server.post('/api/agents/:agent/analyze', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/agents/:agent/analyze' })
     return reply.status(500).send({ error: 'Failed to execute agent operation' })
+  }
+})
+
+// Agent Orchestration API
+server.post('/api/agents/orchestrate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const projectId = body?.projectId || ''
+    const goal = body?.goal || ''
+
+    if (!projectId) {
+      return reply.status(400).send({ error: 'projectId required' })
+    }
+
+    if (!goal) {
+      return reply.status(400).send({ error: 'goal required' })
+    }
+
+    // Create orchestration plan
+    const plan = await orchestrator.createPlan(projectId, goal)
+
+    // Execute orchestration
+    const context = { projectId }
+    const result = await orchestrator.orchestrate(plan, context)
+
+    return {
+      success: true,
+      result: {
+        executions: result.executions.length,
+        toolsUsed: result.toolsUsed.length,
+        errors: result.errors.length,
+        duration: result.duration
+      }
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/agents/orchestrate' })
+    return reply.status(500).send({ error: 'Failed to orchestrate agents' })
+  }
+})
+
+// Agent Memory API
+server.get('/api/agents/memory', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const projectId = query?.projectId || '__org__'
+    const agentType = query?.agentType as AgentType | undefined
+    const searchQuery = query?.query || ''
+    const limit = Number(query?.limit || 10)
+
+    const memories = await agentMemory.retrieveMemory({
+      projectId,
+      agentType,
+      query: searchQuery,
+      limit
+    })
+
+    return {
+      success: true,
+      memories,
+      count: memories.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/agents/memory' })
+    return reply.status(500).send({ error: 'Failed to retrieve agent memory' })
+  }
+})
+
+server.get('/api/agents/stats', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const projectId = query?.projectId || '__org__'
+    const agentType = query?.agentType as AgentType | undefined
+
+    const stats = await agentMemory.getAgentStats(projectId, agentType)
+
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/agents/stats' })
+    return reply.status(500).send({ error: 'Failed to get agent stats' })
+  }
+})
+
+// Agent Evaluation API
+server.post('/api/agents/evaluate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const projectId = body?.projectId || ''
+
+    if (!projectId) {
+      return reply.status(400).send({ error: 'projectId required' })
+    }
+
+    const report = await agentEvaluator.evaluateAll(projectId)
+
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/agents/evaluate' })
+    return reply.status(500).send({ error: 'Failed to evaluate agents' })
   }
 })
 
@@ -858,9 +966,10 @@ const start = async () => {
 
     // Start self-evolving analysis
     try {
-      const { startSelfEvolvingAnalysis } = require('./core/selfEvolving')
+      const { startSelfEvolvingAnalysis, startAutoImprovement } = require('./core/selfEvolving')
       startSelfEvolvingAnalysis(3600000) // Every hour
-      logInfo('✅ Self-evolving analysis started')
+      startAutoImprovement(7200000) // Every 2 hours
+      logInfo('✅ Self-evolving analysis and auto-improvement started')
     } catch (error) {
       logError(error as Error, { context: 'self-evolving setup' })
     }
