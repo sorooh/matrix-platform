@@ -1610,6 +1610,10 @@ import { advancedRedisEmulator } from './selfcontained/advancedRedis'
 import { advancedFFmpegIntegration } from './selfcontained/advancedFFmpeg'
 import { advancedSelfCheckSystem } from './selfcontained/advancedSelfCheck'
 
+// Phase 7.3: Admin Dashboard & Integration Control
+import { adminDashboard } from './admin/dashboard'
+import { keysAndIntegrationsManager } from './admin/keysManager'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -5716,6 +5720,22 @@ const start = async () => {
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.2 initialization' })
       logInfo('⚠️ Phase 7.2 not available, continuing without it')
+    }
+
+    // Phase 7.3: Initialize Admin Dashboard & Integration Control
+    try {
+      // Initialize Admin Dashboard
+      await adminDashboard.initialize()
+      logInfo('✅ Admin Dashboard initialized')
+
+      // Initialize Keys & Integrations Manager
+      await keysAndIntegrationsManager.initialize()
+      logInfo('✅ Keys & Integrations Manager initialized')
+
+      logInfo('✅ Phase 7.3 Admin Dashboard & Integration Control initialized')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 7.3 initialization' })
+      logInfo('⚠️ Phase 7.3 not available, continuing without it')
     }
 
     logInfo('✅ Matrix Platform started successfully')
