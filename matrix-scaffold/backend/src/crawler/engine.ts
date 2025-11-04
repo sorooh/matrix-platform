@@ -15,6 +15,7 @@ import { storageAdapter } from './storageAdapter'
 import { resourceMonitor } from './resourceMonitor'
 import { cache } from './cache'
 import { legalComplianceFilter } from './legalCompliance'
+import { advancedCrawler } from './advanced'
 
 export interface CrawlerConfig {
   userAgent: string
@@ -239,6 +240,12 @@ export class CrawlerEngine {
         // Set user agent
         await page.setUserAgent(this.config.userAgent)
 
+        // Advanced: Bypass bot detection
+        await advancedCrawler.bypassBotDetection(page)
+
+        // Advanced: Randomize fingerprint
+        await advancedCrawler.randomizeFingerprint(page)
+
         // Navigate to URL
         const response = await page.goto(normalizedUrl, {
           waitUntil: 'networkidle2',
@@ -247,6 +254,21 @@ export class CrawlerEngine {
 
         if (!response) {
           throw new Error('No response from page')
+        }
+
+        // Advanced: Wait for SPA hydration
+        await advancedCrawler.waitForSPAHydration(page)
+
+        // Advanced: Humanize behavior
+        await advancedCrawler.humanizeBehavior(page)
+
+        // Advanced: Check for bot detection
+        const botDetection = await advancedCrawler.detectBotDetection(page)
+        if (botDetection.detected) {
+          logger.warn('Bot detection detected, attempting bypass', {
+            mechanisms: botDetection.mechanisms,
+          })
+          await advancedCrawler.bypassBotDetection(page)
         }
 
         const statusCode = response.status()

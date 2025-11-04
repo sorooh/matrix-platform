@@ -1578,6 +1578,8 @@ import { environmentSandbox } from './crawler/sandbox'
 import { knowledgeGraphIntegration } from './crawler/knowledgeGraph'
 import { marketCollector } from './crawler/marketCollector'
 import { governanceLayer } from './crawler/governance'
+import { distributedCrawler } from './crawler/distributed'
+import { videoRecordingSystem } from './crawler/videoRecording'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -4266,6 +4268,87 @@ server.get('/api/governance/report', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/governance/report' })
     return reply.status(500).send({ error: 'Failed to generate compliance report' })
+  }
+})
+
+// Phase 6: Advanced Features API
+server.get('/api/crawler/advanced/status', async (request, reply) => {
+  try {
+    const stats = crawlerEngine.getStats()
+
+    return {
+      success: true,
+      stats,
+      features: {
+        spaSupport: true,
+        botDetectionBypass: true,
+        fingerprintRandomization: true,
+        humanizedBehavior: true,
+        networkInterception: true,
+      },
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/crawler/advanced/status' })
+    return reply.status(500).send({ error: 'Failed to get advanced status' })
+  }
+})
+
+server.get('/api/crawler/distributed/nodes', async (request, reply) => {
+  try {
+    const nodes = distributedCrawler.getAvailableNodes()
+    const stats = distributedCrawler.getNodeStats()
+
+    return {
+      success: true,
+      nodes,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/crawler/distributed/nodes' })
+    return reply.status(500).send({ error: 'Failed to get distributed nodes' })
+  }
+})
+
+server.post('/api/crawler/distributed/register', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const node = body?.node
+
+    if (!node) {
+      return reply.status(400).send({ error: 'node required' })
+    }
+
+    await distributedCrawler.registerNode(node)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/crawler/distributed/register' })
+    return reply.status(500).send({ error: 'Failed to register node' })
+  }
+})
+
+server.get('/api/crawler/video/status', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const sessionId = query?.sessionId
+
+    let recordings
+    if (sessionId) {
+      recordings = videoRecordingSystem.getSessionRecordings(sessionId)
+    } else {
+      recordings = []
+    }
+
+    const ffmpegAvailable = await videoRecordingSystem.checkFFmpegAvailable()
+
+    return {
+      success: true,
+      ffmpegAvailable,
+      recordings,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/crawler/video/status' })
+    return reply.status(500).send({ error: 'Failed to get video status' })
   }
 })
 

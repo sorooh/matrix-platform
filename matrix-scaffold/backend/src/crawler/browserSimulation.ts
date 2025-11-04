@@ -9,6 +9,8 @@ import { eventBus } from '../core/eventBus'
 import puppeteer, { Browser, Page, BrowserLaunchOptions } from 'puppeteer'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { videoRecordingSystem } from './videoRecording'
+import { advancedCrawler } from './advanced'
 
 export interface BrowserSession {
   id: string
@@ -138,6 +140,12 @@ export class BrowserSimulation {
         await page.setUserAgent(options.userAgent)
       }
 
+      // Advanced: Bypass bot detection
+      await advancedCrawler.bypassBotDetection(page)
+
+      // Advanced: Randomize fingerprint
+      await advancedCrawler.randomizeFingerprint(page)
+
       // Set cookies
       if (options?.cookies) {
         for (const cookie of options.cookies) {
@@ -159,6 +167,12 @@ export class BrowserSimulation {
         waitUntil: 'networkidle2',
         timeout: 30000,
       })
+
+      // Advanced: Wait for SPA hydration
+      await advancedCrawler.waitForSPAHydration(page)
+
+      // Advanced: Humanize behavior
+      await advancedCrawler.humanizeBehavior(page)
 
       // Create session
       const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -271,30 +285,30 @@ export class BrowserSimulation {
         throw new Error(`Session ${sessionId} not found`)
       }
 
-      const videoPath = join(
-        this.outputDir,
-        sessionId,
-        `video-${Date.now()}.mp4`
-      )
-
-      await mkdir(join(this.outputDir, sessionId), { recursive: true })
-
-      // Note: Puppeteer doesn't have built-in video recording
-      // In production, use puppeteer-screen-recorder or similar library
-      // For now, we'll simulate video recording
-      logger.info('Video recording started', {
-        sessionId,
-        path: videoPath,
+      // Use real video recording system
+      const recordingId = await videoRecordingSystem.startRecording(sessionId, {
+        width: options?.width,
+        height: options?.height,
+        fps: options?.fps,
+        quality: options?.quality,
       })
 
-      session.videos.push(videoPath)
+      const recording = videoRecordingSystem.getRecording(recordingId)
+      if (recording) {
+        session.videos.push(recording.outputPath)
+      }
+
+      logger.info('Video recording started', {
+        sessionId,
+        recordingId,
+      })
 
       eventBus.publish('crawler.browser.video.started', {
         sessionId,
-        path: videoPath,
+        recordingId,
       })
 
-      return videoPath
+      return recordingId
     } catch (error: any) {
       logger.error('Start video recording failed:', error)
       throw error
@@ -311,8 +325,17 @@ export class BrowserSimulation {
         throw new Error(`Session ${sessionId} not found`)
       }
 
+      // Stop all recordings for this session
+      const recordings = videoRecordingSystem.getSessionRecordings(sessionId)
+      for (const recording of recordings) {
+        if (recording.status === 'recording') {
+          await videoRecordingSystem.stopRecording(recording.id)
+        }
+      }
+
       logger.info('Video recording stopped', {
         sessionId,
+        recordingsCount: recordings.length,
       })
 
       eventBus.publish('crawler.browser.video.stopped', {
