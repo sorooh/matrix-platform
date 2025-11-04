@@ -5679,6 +5679,402 @@ server.get('/api/admin/integrations/statistics', async (request, reply) => {
   }
 })
 
+// Phase 7.3: Integration Control Layer API
+server.post('/api/admin/config/update', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const module = body?.module
+    const config = body?.config
+
+    if (!module || !config) {
+      return reply.status(400).send({ error: 'module and config required' })
+    }
+
+    const updateId = await integrationControlLayer.updateConfig(module, config)
+
+    return {
+      success: true,
+      updateId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/config/update' })
+    return reply.status(500).send({ error: 'Failed to update config' })
+  }
+})
+
+server.get('/api/admin/config/updates', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '100')
+
+    const updates = integrationControlLayer.getAllConfigUpdates(limit)
+
+    return {
+      success: true,
+      updates,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/config/updates' })
+    return reply.status(500).send({ error: 'Failed to get config updates' })
+  }
+})
+
+server.post('/api/admin/config/sync', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const module = body?.module
+    const config = body?.config
+
+    if (!module || !config) {
+      return reply.status(400).send({ error: 'module and config required' })
+    }
+
+    await integrationControlLayer.syncConfigToModule(module, config)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/config/sync' })
+    return reply.status(500).send({ error: 'Failed to sync config' })
+  }
+})
+
+server.get('/api/admin/integrations/status', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const integrationId = query?.integrationId
+
+    if (integrationId) {
+      const status = integrationControlLayer.getIntegrationStatus(integrationId)
+
+      if (!status) {
+        return reply.status(404).send({ error: 'Integration status not found' })
+      }
+
+      return {
+        success: true,
+        status,
+      }
+    } else {
+      const statuses = integrationControlLayer.getAllIntegrationStatuses()
+
+      return {
+        success: true,
+        statuses,
+      }
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/integrations/status' })
+    return reply.status(500).send({ error: 'Failed to get integration status' })
+  }
+})
+
+// Phase 7.3: Performance & Analytics Board API
+server.get('/api/admin/performance/metrics', async (request, reply) => {
+  try {
+    const metrics = performanceAndAnalyticsBoard.getMetrics()
+
+    return {
+      success: true,
+      metrics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/performance/metrics' })
+    return reply.status(500).send({ error: 'Failed to get performance metrics' })
+  }
+})
+
+server.get('/api/admin/performance/regions', async (request, reply) => {
+  try {
+    const comparison = await performanceAndAnalyticsBoard.getRegionalComparison()
+
+    return {
+      success: true,
+      regions: comparison,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/performance/regions' })
+    return reply.status(500).send({ error: 'Failed to get regional comparison' })
+  }
+})
+
+server.post('/api/admin/analytics/report', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const type = body?.type || 'daily'
+
+    const reportId = await performanceAndAnalyticsBoard.generateReport(type)
+
+    return {
+      success: true,
+      reportId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/analytics/report' })
+    return reply.status(500).send({ error: 'Failed to generate report' })
+  }
+})
+
+server.get('/api/admin/analytics/reports', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '20')
+
+    const reports = performanceAndAnalyticsBoard.getAllReports(limit)
+
+    return {
+      success: true,
+      reports,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/reports' })
+    return reply.status(500).send({ error: 'Failed to get reports' })
+  }
+})
+
+server.get('/api/admin/analytics/report/:reportId', async (request, reply) => {
+  try {
+    const reportId = (request.params as any).reportId
+
+    const report = performanceAndAnalyticsBoard.getReport(reportId)
+
+    if (!report) {
+      return reply.status(404).send({ error: 'Report not found' })
+    }
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/report/:reportId' })
+    return reply.status(500).send({ error: 'Failed to get report' })
+  }
+})
+
+// Phase 7.3: User Access & Role System API
+server.post('/api/admin/users', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const userId = await userAccessAndRoleSystem.createUser(config)
+
+    return {
+      success: true,
+      userId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/users' })
+    return reply.status(500).send({ error: 'Failed to create user' })
+  }
+})
+
+server.get('/api/admin/users', async (request, reply) => {
+  try {
+    const users = userAccessAndRoleSystem.getAllUsers()
+
+    return {
+      success: true,
+      users,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/users' })
+    return reply.status(500).send({ error: 'Failed to get users' })
+  }
+})
+
+server.get('/api/admin/users/:userId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+
+    const user = userAccessAndRoleSystem.getUser(userId)
+
+    if (!user) {
+      return reply.status(404).send({ error: 'User not found' })
+    }
+
+    return {
+      success: true,
+      user,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/users/:userId' })
+    return reply.status(500).send({ error: 'Failed to get user' })
+  }
+})
+
+server.put('/api/admin/users/:userId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const body = request.body as any
+    const updates = body?.updates
+
+    if (!updates) {
+      return reply.status(400).send({ error: 'updates required' })
+    }
+
+    await userAccessAndRoleSystem.updateUser(userId, updates)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/admin/users/:userId' })
+    return reply.status(500).send({ error: 'Failed to update user' })
+  }
+})
+
+server.delete('/api/admin/users/:userId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+
+    await userAccessAndRoleSystem.deleteUser(userId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/admin/users/:userId' })
+    return reply.status(500).send({ error: 'Failed to delete user' })
+  }
+})
+
+server.post('/api/admin/users/invite', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+    const invitedBy = body?.invitedBy || 'system'
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const invitationId = await userAccessAndRoleSystem.inviteUser({
+      ...config,
+      invitedBy,
+    })
+
+    return {
+      success: true,
+      invitationId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/users/invite' })
+    return reply.status(500).send({ error: 'Failed to invite user' })
+  }
+})
+
+server.post('/api/admin/users/invitations/:token/accept', async (request, reply) => {
+  try {
+    const token = (request.params as any).token
+    const body = request.body as any
+    const userData = body?.userData
+
+    if (!userData) {
+      return reply.status(400).send({ error: 'userData required' })
+    }
+
+    const userId = await userAccessAndRoleSystem.acceptInvitation(token, userData)
+
+    return {
+      success: true,
+      userId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/users/invitations/:token/accept' })
+    return reply.status(500).send({ error: 'Failed to accept invitation' })
+  }
+})
+
+server.get('/api/admin/users/invitations', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const includeAccepted = query?.includeAccepted === 'true'
+
+    const invitations = userAccessAndRoleSystem.getAllInvitations(includeAccepted)
+
+    return {
+      success: true,
+      invitations,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/users/invitations' })
+    return reply.status(500).send({ error: 'Failed to get invitations' })
+  }
+})
+
+server.post('/api/admin/users/:userId/2fa/enable', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+
+    const result = await userAccessAndRoleSystem.enable2FA(userId)
+
+    return {
+      success: true,
+      ...result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/users/:userId/2fa/enable' })
+    return reply.status(500).send({ error: 'Failed to enable 2FA' })
+  }
+})
+
+server.post('/api/admin/users/:userId/2fa/disable', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+
+    await userAccessAndRoleSystem.disable2FA(userId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/users/:userId/2fa/disable' })
+    return reply.status(500).send({ error: 'Failed to disable 2FA' })
+  }
+})
+
+server.get('/api/admin/users/:userId/permissions', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const query = request.query as any
+    const resource = query?.resource
+    const action = query?.action
+
+    if (!resource || !action) {
+      return reply.status(400).send({ error: 'resource and action required' })
+    }
+
+    const hasPermission = userAccessAndRoleSystem.hasPermission(userId, resource, action)
+
+    return {
+      success: true,
+      hasPermission,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/users/:userId/permissions' })
+    return reply.status(500).send({ error: 'Failed to check permission' })
+  }
+})
+
+server.get('/api/admin/roles/:role/permissions', async (request, reply) => {
+  try {
+    const role = (request.params as any).role
+
+    const permissions = userAccessAndRoleSystem.getRolePermissions(role as any)
+
+    if (!permissions) {
+      return reply.status(404).send({ error: 'Role not found' })
+    }
+
+    return {
+      success: true,
+      permissions,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/roles/:role/permissions' })
+    return reply.status(500).send({ error: 'Failed to get role permissions' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
