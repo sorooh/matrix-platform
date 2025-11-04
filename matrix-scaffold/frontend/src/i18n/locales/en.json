@@ -1,0 +1,70 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "agents": "AI Agents",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "chat": "Chat"
+  },
+  "dashboard": {
+    "title": "Matrix Platform Dashboard",
+    "overview": "Overview",
+    "projects": "Projects",
+    "jobs": "Jobs",
+    "agents": "AI Agents",
+    "system": "System Health",
+    "performance": "Performance",
+    "security": "Security"
+  },
+  "chat": {
+    "title": "AI Chat",
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "agents": "Select Agent",
+    "morpheus": "Morpheus - Analysis & Strategy",
+    "architect": "Architect - Architecture & Design",
+    "sida": "SIDA - Code Generation",
+    "audit": "Audit - Testing & Quality",
+    "vision": "Vision - Visualization"
+  },
+  "projects": {
+    "title": "Projects",
+    "create": "Create Project",
+    "name": "Project Name",
+    "description": "Description",
+    "status": "Status",
+    "created": "Created",
+    "updated": "Updated"
+  },
+  "agents": {
+    "title": "AI Agents",
+    "orchestration": "Multi-Agent Orchestration",
+    "createTask": "Create Task",
+    "goal": "Goal",
+    "selectAgents": "Select Agents",
+    "priority": "Priority"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "realTime": "Real-Time Dashboard",
+    "performance": "Performance Metrics",
+    "security": "Security Events",
+    "trends": "Trends"
+  }
+}
+

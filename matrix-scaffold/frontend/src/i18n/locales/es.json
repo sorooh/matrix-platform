@@ -1,0 +1,70 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "refresh": "Actualizar"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "projects": "Proyectos",
+    "agents": "Agentes IA",
+    "analytics": "Análisis",
+    "settings": "Configuración",
+    "chat": "Chat"
+  },
+  "dashboard": {
+    "title": "Panel de Matrix Platform",
+    "overview": "Resumen",
+    "projects": "Proyectos",
+    "jobs": "Tareas",
+    "agents": "Agentes IA",
+    "system": "Salud del sistema",
+    "performance": "Rendimiento",
+    "security": "Seguridad"
+  },
+  "chat": {
+    "title": "Chat IA",
+    "placeholder": "Escribe tu mensaje...",
+    "send": "Enviar",
+    "agents": "Seleccionar agente",
+    "morpheus": "Morpheus - Análisis y Estrategia",
+    "architect": "Arquitecto - Arquitectura y Diseño",
+    "sida": "SIDA - Generación de código",
+    "audit": "Auditoría - Pruebas y Calidad",
+    "vision": "Visión - Visualización"
+  },
+  "projects": {
+    "title": "Proyectos",
+    "create": "Crear proyecto",
+    "name": "Nombre del proyecto",
+    "description": "Descripción",
+    "status": "Estado",
+    "created": "Creado",
+    "updated": "Actualizado"
+  },
+  "agents": {
+    "title": "Agentes IA",
+    "orchestration": "Orquestación multi-agente",
+    "createTask": "Crear tarea",
+    "goal": "Objetivo",
+    "selectAgents": "Seleccionar agentes",
+    "priority": "Prioridad"
+  },
+  "analytics": {
+    "title": "Análisis",
+    "realTime": "Panel en tiempo real",
+    "performance": "Métricas de rendimiento",
+    "security": "Eventos de seguridad",
+    "trends": "Tendencias"
+  }
+}
+
