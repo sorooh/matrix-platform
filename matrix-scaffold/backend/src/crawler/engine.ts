@@ -9,6 +9,12 @@ import { eventBus } from '../core/eventBus'
 import { prisma } from '../config/database'
 import puppeteer, { Browser, Page, BrowserLaunchOptions } from 'puppeteer'
 import { URL } from 'url'
+import { sessionManager } from './sessionManager'
+import { parser } from './parser'
+import { storageAdapter } from './storageAdapter'
+import { resourceMonitor } from './resourceMonitor'
+import { cache } from './cache'
+import { legalComplianceFilter } from './legalCompliance'
 
 export interface CrawlerConfig {
   userAgent: string
@@ -101,6 +107,9 @@ export class CrawlerEngine {
 
       this.browser = await puppeteer.launch(launchOptions)
 
+      // Start resource monitoring
+      resourceMonitor.startMonitoring()
+
       logger.info('✅ Crawler engine initialized', {
         userAgent: this.config.userAgent,
         proxy: this.config.proxy || 'none',
@@ -120,6 +129,9 @@ export class CrawlerEngine {
    */
   async shutdown(): Promise<void> {
     try {
+      // Stop resource monitoring
+      resourceMonitor.stopMonitoring()
+
       if (this.browser) {
         await this.browser.close()
         this.browser = null
@@ -191,17 +203,25 @@ export class CrawlerEngine {
   /**
    * Crawl single URL
    */
-  async crawlUrl(url: string, options?: { depth?: number; maxDepth?: number }): Promise<CrawlResult> {
+  async crawlUrl(url: string, options?: { depth?: number; maxDepth?: number; sessionId?: string }): Promise<CrawlResult> {
     const startTime = Date.now()
+    const normalizedUrl = parser.normalizeUrl(url)
 
     try {
+      // Check cache first
+      const cachedResult = cache.get(normalizedUrl)
+      if (cachedResult) {
+        logger.info('Cache hit for URL', { url: normalizedUrl })
+        return cachedResult
+      }
+
       // Check if already visited
-      if (this.visitedUrls.has(url)) {
+      if (this.visitedUrls.has(normalizedUrl)) {
         throw new Error('URL already visited')
       }
 
       // Check robots.txt
-      const isAllowed = await this.checkRobotsTxt(url)
+      const isAllowed = await this.checkRobotsTxt(normalizedUrl)
       if (!isAllowed) {
         throw new Error('URL disallowed by robots.txt')
       }
@@ -220,7 +240,7 @@ export class CrawlerEngine {
         await page.setUserAgent(this.config.userAgent)
 
         // Navigate to URL
-        const response = await page.goto(url, {
+        const response = await page.goto(normalizedUrl, {
           waitUntil: 'networkidle2',
           timeout: this.config.timeout,
         })
@@ -231,60 +251,47 @@ export class CrawlerEngine {
 
         const statusCode = response.status()
 
-        // Extract content
-        const title = await page.title().catch(() => undefined)
-        const content = await page.evaluate(() => {
-          return document.body.innerText || ''
-        })
+        // Get HTML content
         const html = await page.content().catch(() => undefined)
 
-        // Extract links
-        const links = await page.evaluate(() => {
-          const anchors = Array.from(document.querySelectorAll('a[href]'))
-          return anchors.map((a) => (a as HTMLAnchorElement).href).filter(Boolean)
-        })
-
-        // Extract images
-        const images = await page.evaluate(() => {
-          const imgs = Array.from(document.querySelectorAll('img[src]'))
-          return imgs.map((img) => (img as HTMLImageElement).src).filter(Boolean)
-        })
-
-        // Extract metadata
-        const metadata = await page.evaluate(() => {
-          const metaTags = Array.from(document.querySelectorAll('meta'))
-          const metadata: Record<string, string> = {}
-          metaTags.forEach((meta) => {
-            const name = meta.getAttribute('name') || meta.getAttribute('property')
-            const content = meta.getAttribute('content')
-            if (name && content) {
-              metadata[name] = content
-            }
-          })
-          return metadata
-        })
-
-        // Get headers
-        const headers = response.headers()
+        // Parse HTML using parser
+        const parsed = html ? parser.parseHTML(html, normalizedUrl) : null
 
         const duration = Date.now() - startTime
 
         const result: CrawlResult = {
-          url,
-          title,
-          content,
+          url: normalizedUrl,
+          title: parsed?.title,
+          content: parsed?.content,
           html,
           statusCode,
-          headers,
-          links,
-          images,
-          metadata,
+          headers: response.headers(),
+          links: parsed?.links || [],
+          images: parsed?.images || [],
+          metadata: parsed?.metadata || {},
           crawledAt: new Date(),
           duration,
         }
 
+        // Check legal compliance
+        const compliance = legalComplianceFilter.checkCompliance(result)
+        if (compliance.blocked) {
+          throw new Error(`Content blocked by compliance: ${compliance.reason}`)
+        }
+
+        // Cache result
+        cache.set(normalizedUrl, result)
+
+        // Save to storage
+        await storageAdapter.saveCrawlResult(result, options?.sessionId)
+
+        // Update session if provided
+        if (options?.sessionId) {
+          sessionManager.incrementCrawled(options.sessionId)
+        }
+
         // Mark as visited
-        this.visitedUrls.add(url)
+        this.visitedUrls.add(normalizedUrl)
 
         await page.close()
 
