@@ -1604,6 +1604,12 @@ import { systemSelfCheck } from './selfcontained/selfCheck'
 import { unifiedLauncher } from './selfcontained/launcher'
 import { autoTestingSuite } from './selfcontained/autoTesting'
 
+// Phase 7.2: Advanced Self-Contained Features
+import { advancedDependencyManager } from './selfcontained/advancedDependencyManager'
+import { advancedRedisEmulator } from './selfcontained/advancedRedis'
+import { advancedFFmpegIntegration } from './selfcontained/advancedFFmpeg'
+import { advancedSelfCheckSystem } from './selfcontained/advancedSelfCheck'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -5690,7 +5696,23 @@ const start = async () => {
       await intelligentLoadBalancer.initialize()
       logInfo('✅ Intelligent Load Balancer initialized')
 
-      logInfo('✅ Phase 7.2 Professional Enhancements initialized')
+      // Initialize Advanced Dependency Manager
+      await advancedDependencyManager.initialize()
+      logInfo('✅ Advanced Dependency Manager initialized')
+
+      // Initialize Advanced Redis Emulator
+      await advancedRedisEmulator.initialize()
+      logInfo('✅ Advanced Redis Emulator initialized')
+
+      // Initialize Advanced FFmpeg Integration
+      await advancedFFmpegIntegration.initialize()
+      logInfo('✅ Advanced FFmpeg Integration initialized')
+
+      // Initialize Advanced Self-Check System
+      await advancedSelfCheckSystem.initialize()
+      logInfo('✅ Advanced Self-Check System initialized')
+
+      logInfo('✅ Phase 7.2 Professional Enhancements initialized (100%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.2 initialization' })
       logInfo('⚠️ Phase 7.2 not available, continuing without it')
