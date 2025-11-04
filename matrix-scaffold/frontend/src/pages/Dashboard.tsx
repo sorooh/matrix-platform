@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { useQuery } from 'react-query'
 import { api } from '../lib/api'
-import StatsCard from '../components/StatsCard'
-import { Activity, FolderKanban, Bot, Shield } from 'lucide-react'
+import RealTimeStats from '../components/RealTimeStats'
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -24,33 +23,6 @@ export default function Dashboard() {
     )
   }
 
-  const stats = [
-    {
-      title: t('dashboard.projects'),
-      value: dashboard?.overview?.projects || 0,
-      icon: FolderKanban,
-      color: 'text-blue-400',
-    },
-    {
-      title: t('dashboard.jobs'),
-      value: dashboard?.overview?.jobs?.total || 0,
-      icon: Activity,
-      color: 'text-green-400',
-    },
-    {
-      title: t('dashboard.agents'),
-      value: dashboard?.overview?.agents?.total || 0,
-      icon: Bot,
-      color: 'text-purple-400',
-    },
-    {
-      title: t('dashboard.security'),
-      value: dashboard?.security?.threats || 0,
-      icon: Shield,
-      color: 'text-red-400',
-    },
-  ]
-
   return (
     <div className="space-y-6">
       <motion.div
@@ -61,18 +33,7 @@ export default function Dashboard() {
         <p className="text-gray-400 mt-2">{t('dashboard.overview')}</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <StatsCard {...stat} />
-          </motion.div>
-        ))}
-      </div>
+      <RealTimeStats />
 
       <motion.div
         initial={{ opacity: 0 }}
