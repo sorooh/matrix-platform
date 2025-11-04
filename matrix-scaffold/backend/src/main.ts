@@ -1591,6 +1591,10 @@ import { securityComplianceHub } from './deployment/securityCompliance'
 // Phase 7.2: Professional Enhancements
 import { advancedDeploymentStrategies } from './deployment/strategies'
 import { multiCloudSupport } from './deployment/multicloud'
+import { realTimeDashboard } from './deployment/dashboard'
+import { advancedVulnerabilityScanner } from './deployment/vulnerabilityScanner'
+import { advancedSecretManager } from './deployment/secretManager'
+import { intelligentLoadBalancer } from './deployment/intelligentLoadBalancer'
 
 // Phase 7.1: Global Auto-Integration & Self-Contained Platform
 import { autoInstaller } from './selfcontained/installer'
@@ -5301,6 +5305,122 @@ server.post('/api/multicloud/terraform', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/multicloud/terraform' })
     return reply.status(500).send({ error: 'Failed to generate Terraform' })
+  }
+})
+
+// Phase 7.2: Real-Time Dashboard API
+server.get('/api/dashboard/overview', async (request, reply) => {
+  try {
+    const overview = await realTimeDashboard.getOverview()
+
+    return {
+      success: true,
+      overview,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/dashboard/overview' })
+    return reply.status(500).send({ error: 'Failed to get dashboard overview' })
+  }
+})
+
+server.get('/api/dashboard/metrics', async (request, reply) => {
+  try {
+    const metrics = await realTimeDashboard.getMetrics()
+
+    return {
+      success: true,
+      metrics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/dashboard/metrics' })
+    return reply.status(500).send({ error: 'Failed to get dashboard metrics' })
+  }
+})
+
+server.get('/api/dashboard/realtime', async (request, reply) => {
+  try {
+    const updates = await realTimeDashboard.getRealTimeUpdates()
+
+    return {
+      success: true,
+      ...updates,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/dashboard/realtime' })
+    return reply.status(500).send({ error: 'Failed to get real-time updates' })
+  }
+})
+
+// Phase 7.2: Advanced Vulnerability Scanner API
+server.post('/api/security/vulnerability/scan', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const options = body?.options
+
+    const scanId = await advancedVulnerabilityScanner.runScan(options)
+
+    return {
+      success: true,
+      scanId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/security/vulnerability/scan' })
+    return reply.status(500).send({ error: 'Failed to run vulnerability scan' })
+  }
+})
+
+server.get('/api/security/vulnerability/scan/:scanId', async (request, reply) => {
+  try {
+    const scanId = (request.params as any).scanId
+
+    const scan = advancedVulnerabilityScanner.getScanResult(scanId)
+
+    if (!scan) {
+      return reply.status(404).send({ error: 'Scan not found' })
+    }
+
+    return {
+      success: true,
+      scan,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/vulnerability/scan/:scanId' })
+    return reply.status(500).send({ error: 'Failed to get scan result' })
+  }
+})
+
+server.get('/api/security/vulnerability/scan/:scanId/report', async (request, reply) => {
+  try {
+    const scanId = (request.params as any).scanId
+
+    const report = await advancedVulnerabilityScanner.generateReport(scanId)
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/vulnerability/scan/:scanId/report' })
+    return reply.status(500).send({ error: 'Failed to generate report' })
+  }
+})
+
+server.get('/api/security/vulnerability', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const severity = query?.severity
+
+    const vulnerabilities = severity
+      ? advancedVulnerabilityScanner.getVulnerabilitiesBySeverity(severity)
+      : advancedVulnerabilityScanner.getAllVulnerabilities()
+
+    return {
+      success: true,
+      vulnerabilities,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/vulnerability' })
+    return reply.status(500).send({ error: 'Failed to get vulnerabilities' })
   }
 })
 

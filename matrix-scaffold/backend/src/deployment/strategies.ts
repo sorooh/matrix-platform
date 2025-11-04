@@ -87,10 +87,10 @@ export interface ABTestDeployment {
 }
 
 export class AdvancedDeploymentStrategies {
-  private blueGreenDeployments: Map<string, BlueGreenDeployment> = new Map()
-  private canaryDeployments: Map<string, CanaryDeployment> = new Map()
-  private rollingDeployments: Map<string, RollingDeployment> = new Map()
-  private abTestDeployments: Map<string, ABTestDeployment> = new Map()
+  public blueGreenDeployments: Map<string, BlueGreenDeployment> = new Map()
+  public canaryDeployments: Map<string, CanaryDeployment> = new Map()
+  public rollingDeployments: Map<string, RollingDeployment> = new Map()
+  public abTestDeployments: Map<string, ABTestDeployment> = new Map()
 
   /**
    * Blue-Green Deployment
