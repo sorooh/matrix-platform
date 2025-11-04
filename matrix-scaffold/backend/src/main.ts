@@ -1586,6 +1586,7 @@ import { autonomousDeploymentEngine } from './deployment/engine'
 import { domainSSLManager } from './deployment/domainSSL'
 import { aiLoadBalancerOrchestrator } from './deployment/loadBalancer'
 import { smartMonitoringAutoRepair } from './deployment/monitoring'
+import { securityComplianceHub } from './deployment/securityCompliance'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -4712,6 +4713,246 @@ server.post('/api/monitoring/report/daily', async (request, reply) => {
   }
 })
 
+// Phase 7: Security & Compliance Hub API
+server.post('/api/security/check', async (request, reply) => {
+  try {
+    const checks = await securityComplianceHub.runSecurityChecks()
+
+    return {
+      success: true,
+      checks,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/security/check' })
+    return reply.status(500).send({ error: 'Failed to run security checks' })
+  }
+})
+
+server.post('/api/security/vault/secret', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const key = body?.key
+    const value = body?.value
+    const type = body?.type
+    const permissions = body?.permissions || []
+
+    if (!key || !value || !type) {
+      return reply.status(400).send({ error: 'key, value, and type required' })
+    }
+
+    const secretId = await securityComplianceHub.storeSecret(key, value, type, permissions)
+
+    return {
+      success: true,
+      secretId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/security/vault/secret' })
+    return reply.status(500).send({ error: 'Failed to store secret' })
+  }
+})
+
+server.get('/api/security/vault/secret/:secretId', async (request, reply) => {
+  try {
+    const secretId = (request.params as any).secretId
+    const query = request.query as any
+    const userId = query?.userId
+
+    const value = await securityComplianceHub.retrieveSecret(secretId, userId)
+
+    if (!value) {
+      return reply.status(404).send({ error: 'Secret not found' })
+    }
+
+    return {
+      success: true,
+      value,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/vault/secret/:secretId' })
+    return reply.status(500).send({ error: 'Failed to retrieve secret' })
+  }
+})
+
+server.post('/api/security/audit', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const action = body?.action
+    const resource = body?.resource
+    const metadata = body?.metadata
+    const options = body?.options
+
+    if (!action || !resource) {
+      return reply.status(400).send({ error: 'action and resource required' })
+    }
+
+    const auditId = await securityComplianceHub.logAudit(action, resource, metadata, options)
+
+    return {
+      success: true,
+      auditId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/security/audit' })
+    return reply.status(500).send({ error: 'Failed to log audit entry' })
+  }
+})
+
+server.get('/api/security/audit', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = query?.limit ? parseInt(query.limit, 10) : undefined
+
+    const entries = securityComplianceHub.getAuditEntries(limit)
+
+    return {
+      success: true,
+      entries,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/audit' })
+    return reply.status(500).send({ error: 'Failed to get audit entries' })
+  }
+})
+
+server.get('/api/security/compliance', async (request, reply) => {
+  try {
+    const status = await securityComplianceHub.getComplianceStatus()
+
+    return {
+      success: true,
+      status,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/compliance' })
+    return reply.status(500).send({ error: 'Failed to get compliance status' })
+  }
+})
+
+server.get('/api/security/checks', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = query?.limit ? parseInt(query.limit, 10) : undefined
+
+    const checks = securityComplianceHub.getSecurityChecks(limit)
+
+    return {
+      success: true,
+      checks,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/checks' })
+    return reply.status(500).send({ error: 'Failed to get security checks' })
+  }
+})
+
+// Phase 7: Deployment Dashboard API
+server.get('/api/dashboard/overview', async (request, reply) => {
+  try {
+    // Get all deployment data
+    const deployments = autonomousDeploymentEngine.getAllDeployments()
+    const domains = domainSSLManager.getAllDomains()
+    const regionStats = aiLoadBalancerOrchestrator.getRegionStats()
+    const instanceStats = aiLoadBalancerOrchestrator.getInstanceStats()
+    const metrics = smartMonitoringAutoRepair.getCurrentMetrics()
+    const incidents = smartMonitoringAutoRepair.getOpenIncidents()
+    const complianceStatus = await securityComplianceHub.getComplianceStatus()
+
+    return {
+      success: true,
+      overview: {
+        deployments: {
+          total: deployments.length,
+          running: deployments.filter((d) => d.status === 'completed').length,
+          failed: deployments.filter((d) => d.status === 'failed').length,
+          pending: deployments.filter((d) => d.status === 'pending').length,
+        },
+        domains: {
+          total: domains.length,
+          active: domains.filter((d) => d.status === 'active').length,
+          error: domains.filter((d) => d.status === 'error').length,
+        },
+        regions: {
+          total: regionStats.totalRegions,
+          active: regionStats.activeRegions,
+          utilization: regionStats.utilization,
+        },
+        instances: {
+          total: instanceStats.totalInstances,
+          running: instanceStats.runningInstances,
+          stopped: instanceStats.stoppedInstances,
+        },
+        monitoring: {
+          metrics,
+          openIncidents: incidents.length,
+        },
+        compliance: {
+          gdpr: complianceStatus.gdpr.compliant,
+          iso27001: complianceStatus.iso27001.compliant,
+          soc2: complianceStatus.soc2.compliant,
+        },
+      },
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/dashboard/overview' })
+    return reply.status(500).send({ error: 'Failed to get dashboard overview' })
+  }
+})
+
+server.get('/api/dashboard/deployments', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const status = query?.status
+
+    let deployments
+    if (status) {
+      deployments = autonomousDeploymentEngine.getDeploymentsByStatus(status)
+    } else {
+      deployments = autonomousDeploymentEngine.getAllDeployments()
+    }
+
+    return {
+      success: true,
+      deployments: deployments.map((d) => ({
+        id: d.id,
+        config: d.config,
+        status: d.status,
+        startedAt: d.startedAt,
+        completedAt: d.completedAt,
+        duration: d.duration,
+        url: d.url,
+        version: d.version,
+        healthCheckStatus: d.healthCheckStatus,
+      })),
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/dashboard/deployments' })
+    return reply.status(500).send({ error: 'Failed to get deployments' })
+  }
+})
+
+server.post('/api/dashboard/redeploy/:deploymentId', async (request, reply) => {
+  try {
+    const deploymentId = (request.params as any).deploymentId
+
+    const deployment = autonomousDeploymentEngine.getDeployment(deploymentId)
+    if (!deployment) {
+      return reply.status(404).send({ error: 'Deployment not found' })
+    }
+
+    // Redeploy
+    const result = await autonomousDeploymentEngine.deploy(deployment.config)
+
+    return {
+      success: result.success,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/dashboard/redeploy/:deploymentId' })
+    return reply.status(500).send({ error: 'Failed to redeploy' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -4915,6 +5156,10 @@ const start = async () => {
       // Initialize Smart Monitoring & Auto-Repair System
       await smartMonitoringAutoRepair.initialize()
       logInfo('✅ Smart Monitoring & Auto-Repair System initialized')
+
+      // Initialize Security & Compliance Hub
+      await securityComplianceHub.initialize()
+      logInfo('✅ Security & Compliance Hub initialized')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7 initialization' })
       logInfo('⚠️ Phase 7 not available, continuing without it')
