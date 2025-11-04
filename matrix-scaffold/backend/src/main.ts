@@ -1561,6 +1561,11 @@ import { gpuAccelerationSystem } from './neural/gpu'
 import { modelOptimizationSystem } from './neural/optimization'
 import { performanceProfilingSystem } from './neural/profiling'
 import { neuralMemorySystem } from './neural/memory'
+import { multiModelSystem } from './neural/multimodel'
+import { neuralLoadBalancer } from './neural/loadbalancer'
+import { autoScalingSystem } from './neural/autoscaling'
+import { continuousLearningSystem } from './neural/learning'
+import { stressTestSystem } from './neural/stresstest'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -3056,6 +3061,351 @@ server.get('/api/neural/memory/stats', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/neural/memory/stats' })
     return reply.status(500).send({ error: 'Failed to get memory stats' })
+  }
+})
+
+// Phase 5: Multi-Model API
+server.get('/api/neural/models', async (request, reply) => {
+  try {
+    const models = multiModelSystem.getModels()
+
+    return {
+      success: true,
+      models: models.map((m) => ({
+        id: m.config.id,
+        name: m.config.name,
+        type: m.config.type,
+        version: m.config.version,
+        enabled: m.config.enabled,
+        loaded: m.loaded,
+        activeRequests: m.activeRequests,
+        stats: m.stats,
+      })),
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/models' })
+    return reply.status(500).send({ error: 'Failed to get models' })
+  }
+})
+
+server.get('/api/neural/models/stats', async (request, reply) => {
+  try {
+    const stats = multiModelSystem.getModelStats()
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/models/stats' })
+    return reply.status(500).send({ error: 'Failed to get model stats' })
+  }
+})
+
+server.put('/api/neural/models/:modelId/toggle', async (request, reply) => {
+  try {
+    const modelId = (request.params as any).modelId
+    const body = request.body as any
+    const enabled = body?.enabled !== false
+
+    const result = await multiModelSystem.toggleModel(modelId, enabled)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/neural/models/:modelId/toggle' })
+    return reply.status(500).send({ error: 'Failed to toggle model' })
+  }
+})
+
+server.post('/api/neural/models/generate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const requirements = body?.requirements
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    const result = await multiModelSystem.generate(prompt, requirements)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      response: result.response,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/models/generate' })
+    return reply.status(500).send({ error: 'Failed to generate response' })
+  }
+})
+
+// Phase 5: Load Balancer API
+server.get('/api/neural/loadbalancer/stats', async (request, reply) => {
+  try {
+    const stats = neuralLoadBalancer.getStats()
+    const config = neuralLoadBalancer.getConfig()
+
+    return {
+      success: true,
+      stats,
+      config,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/loadbalancer/stats' })
+    return reply.status(500).send({ error: 'Failed to get load balancer stats' })
+  }
+})
+
+server.post('/api/neural/loadbalancer/route', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const requirements = body?.requirements
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    const result = await neuralLoadBalancer.routeRequest(prompt, requirements)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      response: result.response,
+      modelId: result.modelId,
+      retries: result.retries,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/loadbalancer/route' })
+    return reply.status(500).send({ error: 'Failed to route request' })
+  }
+})
+
+// Phase 5: Auto-Scaling API
+server.get('/api/neural/autoscaling/status', async (request, reply) => {
+  try {
+    const config = autoScalingSystem.getConfig()
+    const metrics = await autoScalingSystem.getCurrentMetrics()
+    const history = autoScalingSystem.getScalingHistory()
+
+    return {
+      success: true,
+      config,
+      metrics,
+      history: history.slice(-10), // Last 10 metrics
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/autoscaling/status' })
+    return reply.status(500).send({ error: 'Failed to get auto-scaling status' })
+  }
+})
+
+server.put('/api/neural/autoscaling/config', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    autoScalingSystem.updateConfig(config)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/neural/autoscaling/config' })
+    return reply.status(500).send({ error: 'Failed to update auto-scaling config' })
+  }
+})
+
+server.put('/api/neural/autoscaling/toggle', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const enabled = body?.enabled !== false
+
+    autoScalingSystem.toggle(enabled)
+
+    return { success: true, enabled }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/neural/autoscaling/toggle' })
+    return reply.status(500).send({ error: 'Failed to toggle auto-scaling' })
+  }
+})
+
+// Phase 5: Continuous Learning API
+server.post('/api/neural/learning/interaction', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const input = body?.input
+    const output = body?.output
+    const context = body?.context || []
+    const metadata = body?.metadata
+
+    if (!input || !output) {
+      return reply.status(400).send({ error: 'input and output required' })
+    }
+
+    const result = await continuousLearningSystem.learnFromInteraction(input, output, context, metadata)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      patternId: result.patternId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/learning/interaction' })
+    return reply.status(500).send({ error: 'Failed to learn from interaction' })
+  }
+})
+
+server.get('/api/neural/learning/patterns', async (request, reply) => {
+  try {
+    const patterns = continuousLearningSystem.getLearningPatterns()
+
+    return {
+      success: true,
+      patterns,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/learning/patterns' })
+    return reply.status(500).send({ error: 'Failed to get learning patterns' })
+  }
+})
+
+server.get('/api/neural/learning/stats', async (request, reply) => {
+  try {
+    const stats = continuousLearningSystem.getLearningStats()
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/learning/stats' })
+    return reply.status(500).send({ error: 'Failed to get learning stats' })
+  }
+})
+
+server.post('/api/neural/learning/finetune', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const result = await continuousLearningSystem.fineTuneModel(config)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/learning/finetune' })
+    return reply.status(500).send({ error: 'Failed to fine-tune model' })
+  }
+})
+
+server.get('/api/neural/learning/finetune/status', async (request, reply) => {
+  try {
+    const status = continuousLearningSystem.getFineTuningStatus()
+    const queue = continuousLearningSystem.getFineTuningQueue()
+
+    return {
+      success: true,
+      status,
+      queue,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/learning/finetune/status' })
+    return reply.status(500).send({ error: 'Failed to get fine-tuning status' })
+  }
+})
+
+// Phase 5: Stress Tests API
+server.post('/api/neural/stresstest/run', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const result = await stressTestSystem.runStressTest(config)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/stresstest/run' })
+    return reply.status(500).send({ error: 'Failed to run stress test' })
+  }
+})
+
+server.post('/api/neural/stresstest/load', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const duration = parseInt(body?.duration || '60000', 10)
+    const concurrency = parseInt(body?.concurrency || '10', 10)
+    const payload = body?.payload
+
+    if (!payload || !payload.prompt) {
+      return reply.status(400).send({ error: 'payload with prompt required' })
+    }
+
+    const result = await stressTestSystem.runLoadTest(duration, concurrency, payload)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/stresstest/load' })
+    return reply.status(500).send({ error: 'Failed to run load test' })
+  }
+})
+
+server.post('/api/neural/stresstest/performance', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const requests = parseInt(body?.requests || '100', 10)
+    const concurrency = parseInt(body?.concurrency || '10', 10)
+    const payload = body?.payload
+
+    if (!payload || !payload.prompt) {
+      return reply.status(400).send({ error: 'payload with prompt required' })
+    }
+
+    const result = await stressTestSystem.runPerformanceTest(requests, concurrency, payload)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/stresstest/performance' })
+    return reply.status(500).send({ error: 'Failed to run performance test' })
   }
 })
 
