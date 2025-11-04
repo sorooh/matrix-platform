@@ -52,8 +52,6 @@ All notable changes to the Matrix Platform will be documented in this file.
 
 ## [7.3.0] - 2025-01-04
 
-## [7.3.0] - 2025-01-04
-
 ### Phase 7.3 - Admin Dashboard & Integration Control (83% Complete - Backend 100%)
 
 #### Added
