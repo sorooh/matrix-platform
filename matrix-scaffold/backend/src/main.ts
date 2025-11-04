@@ -1533,6 +1533,352 @@ server.get('/api/reporting/performance', async (request, reply) => {
 
 // Data Governance API (already imported above)
 
+// Phase 3 Completion - Advanced AI Capabilities
+import { advancedOrchestration } from './ai/advancedOrchestration'
+
+// Phase 3 Completion - Advanced Analytics
+import { realTimeDashboard } from './analytics/dashboard'
+
+// Phase 3 Completion - Machine Learning
+import { machineLearning } from './ml/learning'
+
+// Phase 3 Completion - Advanced Automation
+import { workflowEngine } from './automation/workflow'
+
+// Advanced Multi-Agent Orchestration API
+server.post('/api/orchestration/tasks', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const goal = body?.goal
+    const agents = body?.agents || []
+    const priority = body?.priority || 'medium'
+
+    if (!goal) {
+      return reply.status(400).send({ error: 'goal required' })
+    }
+
+    if (agents.length === 0) {
+      return reply.status(400).send({ error: 'agents required' })
+    }
+
+    const result = await advancedOrchestration.createTask(goal, agents, priority)
+    return {
+      success: result.success,
+      task: result.task
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/orchestration/tasks' })
+    return reply.status(500).send({ error: 'Failed to create multi-agent task' })
+  }
+})
+
+server.get('/api/orchestration/tasks', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = Number(query?.limit || 100)
+    const tasks = advancedOrchestration.listTasks(limit)
+    return {
+      success: true,
+      tasks
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/orchestration/tasks' })
+    return reply.status(500).send({ error: 'Failed to list tasks' })
+  }
+})
+
+server.get('/api/orchestration/tasks/:taskId', async (request, reply) => {
+  try {
+    const taskId = (request.params as any).taskId
+    const task = advancedOrchestration.getTask(taskId)
+
+    if (!task) {
+      return reply.status(404).send({ error: 'Task not found' })
+    }
+
+    const collaboration = advancedOrchestration.getCollaboration(taskId)
+
+    return {
+      success: true,
+      task,
+      collaboration
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/orchestration/tasks/:taskId' })
+    return reply.status(500).send({ error: 'Failed to get task' })
+  }
+})
+
+server.get('/api/orchestration/stats', async (request, reply) => {
+  try {
+    const stats = advancedOrchestration.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/orchestration/stats' })
+    return reply.status(500).send({ error: 'Failed to get orchestration stats' })
+  }
+})
+
+// Real-Time Analytics Dashboard API
+server.get('/api/analytics/dashboard', async (request, reply) => {
+  try {
+    const dashboard = await realTimeDashboard.generateDashboard()
+    return {
+      success: true,
+      dashboard
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/analytics/dashboard' })
+    return reply.status(500).send({ error: 'Failed to generate dashboard' })
+  }
+})
+
+server.get('/api/analytics/dashboard/snapshot', async (request, reply) => {
+  try {
+    const snapshot = await realTimeDashboard.getSnapshot()
+    return {
+      success: true,
+      snapshot
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/analytics/dashboard/snapshot' })
+    return reply.status(500).send({ error: 'Failed to get dashboard snapshot' })
+  }
+})
+
+// Machine Learning API
+server.post('/api/ml/models/train', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const type = body?.type
+
+    if (!type) {
+      return reply.status(400).send({ error: 'type required' })
+    }
+
+    const result = await machineLearning.trainModel(type)
+    return {
+      success: result.success,
+      model: result.model
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/ml/models/train' })
+    return reply.status(500).send({ error: 'Failed to train model' })
+  }
+})
+
+server.get('/api/ml/models', async (request, reply) => {
+  try {
+    const models = machineLearning.listModels()
+    return {
+      success: true,
+      models
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/ml/models' })
+    return reply.status(500).send({ error: 'Failed to list models' })
+  }
+})
+
+server.get('/api/ml/models/:type', async (request, reply) => {
+  try {
+    const type = (request.params as any).type
+    const model = machineLearning.getModel(type)
+
+    if (!model) {
+      return reply.status(404).send({ error: 'Model not found' })
+    }
+
+    return {
+      success: true,
+      model
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/ml/models/:type' })
+    return reply.status(500).send({ error: 'Failed to get model' })
+  }
+})
+
+server.post('/api/ml/predict', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const type = body?.type
+    const input = body?.input || {}
+
+    if (!type) {
+      return reply.status(400).send({ error: 'type required' })
+    }
+
+    const result = await machineLearning.predict(type, input)
+    return {
+      success: result.success,
+      prediction: result.prediction,
+      confidence: result.confidence
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/ml/predict' })
+    return reply.status(500).send({ error: 'Failed to make prediction' })
+  }
+})
+
+server.get('/api/ml/insights', async (request, reply) => {
+  try {
+    const insights = await machineLearning.generateInsights()
+    return {
+      success: true,
+      insights
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/ml/insights' })
+    return reply.status(500).send({ error: 'Failed to generate insights' })
+  }
+})
+
+server.get('/api/ml/stats', async (request, reply) => {
+  try {
+    const stats = machineLearning.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/ml/stats' })
+    return reply.status(500).send({ error: 'Failed to get ML stats' })
+  }
+})
+
+// Workflow Automation API
+server.post('/api/automation/workflows', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const name = body?.name
+    const description = body?.description || ''
+    const trigger = body?.trigger
+    const steps = body?.steps || []
+
+    if (!name) {
+      return reply.status(400).send({ error: 'name required' })
+    }
+
+    if (!trigger) {
+      return reply.status(400).send({ error: 'trigger required' })
+    }
+
+    if (steps.length === 0) {
+      return reply.status(400).send({ error: 'steps required' })
+    }
+
+    const result = await workflowEngine.createWorkflow(name, description, trigger, steps)
+    return {
+      success: result.success,
+      workflow: result.workflow
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/automation/workflows' })
+    return reply.status(500).send({ error: 'Failed to create workflow' })
+  }
+})
+
+server.get('/api/automation/workflows', async (request, reply) => {
+  try {
+    const workflows = workflowEngine.listWorkflows()
+    return {
+      success: true,
+      workflows
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/automation/workflows' })
+    return reply.status(500).send({ error: 'Failed to list workflows' })
+  }
+})
+
+server.get('/api/automation/workflows/:workflowId', async (request, reply) => {
+  try {
+    const workflowId = (request.params as any).workflowId
+    const workflow = workflowEngine.getWorkflow(workflowId)
+
+    if (!workflow) {
+      return reply.status(404).send({ error: 'Workflow not found' })
+    }
+
+    return {
+      success: true,
+      workflow
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/automation/workflows/:workflowId' })
+    return reply.status(500).send({ error: 'Failed to get workflow' })
+  }
+})
+
+server.post('/api/automation/workflows/:workflowId/execute', async (request, reply) => {
+  try {
+    const workflowId = (request.params as any).workflowId
+    const result = await workflowEngine.executeWorkflow(workflowId)
+    return {
+      success: result.success,
+      execution: result.execution
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/automation/workflows/:workflowId/execute' })
+    return reply.status(500).send({ error: 'Failed to execute workflow' })
+  }
+})
+
+server.put('/api/automation/workflows/:workflowId/toggle', async (request, reply) => {
+  try {
+    const workflowId = (request.params as any).workflowId
+    const body = request.body as any
+    const enabled = body?.enabled !== false
+
+    const result = await workflowEngine.toggleWorkflow(workflowId, enabled)
+    return {
+      success: result.success
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/automation/workflows/:workflowId/toggle' })
+    return reply.status(500).send({ error: 'Failed to toggle workflow' })
+  }
+})
+
+server.get('/api/automation/executions', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const workflowId = query?.workflowId
+    const limit = Number(query?.limit || 100)
+    const executions = workflowEngine.listExecutions(workflowId, limit)
+    return {
+      success: true,
+      executions
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/automation/executions' })
+    return reply.status(500).send({ error: 'Failed to list executions' })
+  }
+})
+
+server.get('/api/automation/executions/:executionId', async (request, reply) => {
+  try {
+    const executionId = (request.params as any).executionId
+    const execution = workflowEngine.getExecution(executionId)
+
+    if (!execution) {
+      return reply.status(404).send({ error: 'Execution not found' })
+    }
+
+    return {
+      success: true,
+      execution
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/automation/executions/:executionId' })
+    return reply.status(500).send({ error: 'Failed to get execution' })
+  }
+})
+
 // Stream chat endpoint
 server.post('/api/agents/chat/stream', async (request, reply) => {
   try {
