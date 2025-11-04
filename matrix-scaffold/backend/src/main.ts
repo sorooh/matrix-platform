@@ -1545,6 +1545,9 @@ import { machineLearning } from './ml/learning'
 // Phase 3 Completion - Advanced Automation
 import { workflowEngine } from './automation/workflow'
 
+// Phase 4: Smart User Accounts
+import { smartUserAccounts } from './users/accounts'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -1920,6 +1923,369 @@ server.post('/api/agents/chat/stream', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/agents/chat/stream' })
     return reply.status(500).send({ error: 'Failed to stream agent response' })
+  }
+})
+
+// Phase 4: Smart User Accounts API
+server.post('/api/auth/register', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const email = body?.email
+    const password = body?.password
+    const name = body?.name
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'email and password required' })
+    }
+
+    const ip = request.headers['x-forwarded-for'] || request.ip
+    const userAgent = request.headers['user-agent']
+
+    const result = await smartUserAccounts.register(email, password, name, {
+      ip: ip as string,
+      userAgent: userAgent as string,
+    })
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      user: result.user,
+      token: result.token,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/register' })
+    return reply.status(500).send({ error: 'Failed to register user' })
+  }
+})
+
+server.post('/api/auth/login', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const email = body?.email
+    const password = body?.password
+    const twoFactorCode = body?.twoFactorCode
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'email and password required' })
+    }
+
+    const ip = request.headers['x-forwarded-for'] || request.ip
+    const userAgent = request.headers['user-agent']
+
+    const result = await smartUserAccounts.login(email, password, {
+      ip: ip as string,
+      userAgent: userAgent as string,
+      twoFactorCode,
+    })
+
+    if (!result.success) {
+      return reply.status(401).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      user: result.user,
+      token: result.token,
+      session: result.session,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/login' })
+    return reply.status(500).send({ error: 'Failed to login' })
+  }
+})
+
+server.post('/api/auth/oauth/:provider', async (request, reply) => {
+  try {
+    const provider = (request.params as any).provider as 'google' | 'github' | 'microsoft'
+    const body = request.body as any
+    const code = body?.code
+
+    if (!code) {
+      return reply.status(400).send({ error: 'code required' })
+    }
+
+    const ip = request.headers['x-forwarded-for'] || request.ip
+    const userAgent = request.headers['user-agent']
+
+    const result = await smartUserAccounts.oauthLogin(provider, code, {
+      ip: ip as string,
+      userAgent: userAgent as string,
+    })
+
+    if (!result.success) {
+      return reply.status(401).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      user: result.user,
+      token: result.token,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/oauth/:provider' })
+    return reply.status(500).send({ error: 'Failed to login with OAuth' })
+  }
+})
+
+server.post('/api/auth/verify-email', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const token = body?.token
+
+    if (!token) {
+      return reply.status(400).send({ error: 'token required' })
+    }
+
+    const result = await smartUserAccounts.verifyEmail(token)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/verify-email' })
+    return reply.status(500).send({ error: 'Failed to verify email' })
+  }
+})
+
+server.post('/api/auth/logout', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    // Get session ID from token (simplified - in production, store session ID in token)
+    const sessionId = `session-${verification.userId}`
+    const result = await smartUserAccounts.logout(sessionId)
+
+    return { success: result.success }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/logout' })
+    return reply.status(500).send({ error: 'Failed to logout' })
+  }
+})
+
+server.get('/api/auth/me', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const user = await smartUserAccounts.getUser(verification.userId)
+
+    if (!user) {
+      return reply.status(404).send({ error: 'user not found' })
+    }
+
+    return { success: true, user }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/auth/me' })
+    return reply.status(500).send({ error: 'Failed to get user' })
+  }
+})
+
+server.put('/api/auth/profile', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const body = request.body as any
+    const result = await smartUserAccounts.updateProfile(verification.userId, {
+      name: body?.name,
+      avatar: body?.avatar,
+      preferences: body?.preferences,
+    })
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true, user: result.user }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/auth/profile' })
+    return reply.status(500).send({ error: 'Failed to update profile' })
+  }
+})
+
+server.get('/api/auth/activity', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '50', 10)
+
+    const activities = await smartUserAccounts.getActivityTimeline(verification.userId, limit)
+
+    return { success: true, activities }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/auth/activity' })
+    return reply.status(500).send({ error: 'Failed to get activity timeline' })
+  }
+})
+
+server.get('/api/auth/security-logs', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '50', 10)
+
+    const logs = await smartUserAccounts.getSecurityLogs(verification.userId, limit)
+
+    return { success: true, logs }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/auth/security-logs' })
+    return reply.status(500).send({ error: 'Failed to get security logs' })
+  }
+})
+
+server.get('/api/auth/sessions', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const sessions = await smartUserAccounts.getSessions(verification.userId)
+
+    return { success: true, sessions }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/auth/sessions' })
+    return reply.status(500).send({ error: 'Failed to get sessions' })
+  }
+})
+
+server.delete('/api/auth/sessions/:sessionId', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const sessionId = (request.params as any).sessionId
+    const result = await smartUserAccounts.revokeSession(sessionId)
+
+    return { success: result.success }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/auth/sessions/:sessionId' })
+    return reply.status(500).send({ error: 'Failed to revoke session' })
+  }
+})
+
+server.post('/api/auth/2fa/enable', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const result = await smartUserAccounts.enable2FA(verification.userId)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true, secret: result.secret, qrCode: result.qrCode }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/2fa/enable' })
+    return reply.status(500).send({ error: 'Failed to enable 2FA' })
+  }
+})
+
+server.post('/api/auth/2fa/disable', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const result = await smartUserAccounts.disable2FA(verification.userId)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/2fa/disable' })
+    return reply.status(500).send({ error: 'Failed to disable 2FA' })
   }
 })
 
