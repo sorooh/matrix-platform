@@ -29,7 +29,8 @@
     "openai": "^4.20.0",
     "@octokit/rest": "^20.0.0",
     "@anthropic-ai/sdk": "^0.17.0",
-    "prom-client": "^15.0.0"
+    "prom-client": "^15.0.0",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -48,7 +49,8 @@
     "eslint": "^8.47.0",
     "prettier": "^3.0.0",
     "@types/openai": "^4.20.0",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "@types/socket.io": "^3.0.2"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",

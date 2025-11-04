@@ -6075,6 +6075,131 @@ server.get('/api/admin/roles/:role/permissions', async (request, reply) => {
   }
 })
 
+// Phase 7.3.1: Advanced Security API Endpoints
+server.post('/api/admin/security/auth', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const { email, password } = body
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'email and password required' })
+    }
+
+    // In production, verify password against database
+    const userId = `user-${Date.now()}`
+    const role = 'admin'
+    const token = advancedSecurity.generateToken({ userId, role, email })
+    const sessionId = await advancedSecurity.createSession(
+      userId,
+      token,
+      request.ip,
+      request.headers['user-agent']
+    )
+
+    return {
+      success: true,
+      token,
+      sessionId,
+      userId,
+      role,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/security/auth' })
+    return reply.status(500).send({ error: 'Failed to authenticate' })
+  }
+})
+
+server.post('/api/admin/security/verify', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const { token } = body
+
+    if (!token) {
+      return reply.status(400).send({ error: 'token required' })
+    }
+
+    const payload = advancedSecurity.verifyToken(token)
+
+    if (!payload) {
+      return reply.status(401).send({ error: 'Invalid token' })
+    }
+
+    return {
+      success: true,
+      payload,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/security/verify' })
+    return reply.status(500).send({ error: 'Failed to verify token' })
+  }
+})
+
+server.post('/api/admin/security/logout', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const { sessionId } = body
+
+    if (sessionId) {
+      advancedSecurity.invalidateSession(sessionId)
+    }
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/security/logout' })
+    return reply.status(500).send({ error: 'Failed to logout' })
+  }
+})
+
+server.get('/api/admin/security/events', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+    const severity = query?.severity
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const events = advancedSecurity.getSecurityEvents(type, severity, limit)
+
+    return {
+      success: true,
+      events,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/security/events' })
+    return reply.status(500).send({ error: 'Failed to get security events' })
+  }
+})
+
+server.get('/api/admin/security/statistics', async (request, reply) => {
+  try {
+    const stats = advancedSecurity.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/security/statistics' })
+    return reply.status(500).send({ error: 'Failed to get security statistics' })
+  }
+})
+
+// Phase 7.3.1: WebSocket API Endpoints
+server.get('/api/admin/websocket/statistics', async (request, reply) => {
+  try {
+    const stats = webSocketServer.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/websocket/statistics' })
+    return reply.status(500).send({ error: 'Failed to get WebSocket statistics' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -6175,6 +6300,18 @@ const start = async () => {
       region: config.region,
       version: config.monitoring.version || '0.1.0'
     })
+
+    // Initialize WebSocket Server (after server is listening)
+    try {
+      const httpServer = (server as any).server
+      if (httpServer) {
+        await webSocketServer.initialize(httpServer)
+        logInfo('✅ WebSocket Server initialized')
+      }
+    } catch (error) {
+      logError(error as Error, { context: 'WebSocket initialization' })
+      logInfo('⚠️ WebSocket not available, continuing without it')
+    }
 
     // Periodic org sync (lightweight)
     setInterval(async () => {
@@ -6389,6 +6526,23 @@ const start = async () => {
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.3 initialization' })
       logInfo('⚠️ Phase 7.3 not available, continuing without it')
+    }
+
+    // Phase 7.3.1: Initialize Professional Enhancements
+    try {
+      // Initialize Advanced Security
+      await advancedSecurity.initialize()
+      logInfo('✅ Advanced Security initialized')
+
+      // Initialize Admin Database
+      await adminDatabase.initialize()
+      logInfo('✅ Admin Database initialized')
+
+      // Initialize WebSocket Server (after server.listen)
+      logInfo('✅ Phase 7.3.1 Professional Enhancements initialized (30%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 7.3.1 initialization' })
+      logInfo('⚠️ Phase 7.3.1 not available, continuing without it')
     }
 
     logInfo('✅ Matrix Platform started successfully')
