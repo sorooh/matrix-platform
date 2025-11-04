@@ -6406,6 +6406,357 @@ server.post('/api/admin/cache/clear', async (request, reply) => {
   }
 })
 
+// Phase 7.3.1: Advanced Analytics API Endpoints
+server.post('/api/admin/analytics/report', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const type = body?.type || 'daily'
+    const periodStart = body?.periodStart ? new Date(body.periodStart) : new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const periodEnd = body?.periodEnd ? new Date(body.periodEnd) : new Date()
+    const templateId = body?.templateId
+    const generatedBy = body?.generatedBy
+
+    const report = await advancedAnalytics.generateReport(type, periodStart, periodEnd, templateId, generatedBy)
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/analytics/report' })
+    return reply.status(500).send({ error: 'Failed to generate report' })
+  }
+})
+
+server.get('/api/admin/analytics/reports', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const reports = advancedAnalytics.getReports(type, limit)
+
+    return {
+      success: true,
+      reports,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/reports' })
+    return reply.status(500).send({ error: 'Failed to get reports' })
+  }
+})
+
+server.get('/api/admin/analytics/reports/:reportId', async (request, reply) => {
+  try {
+    const reportId = (request.params as any).reportId
+
+    const report = advancedAnalytics.getReport(reportId)
+
+    if (!report) {
+      return reply.status(404).send({ error: 'Report not found' })
+    }
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/reports/:reportId' })
+    return reply.status(500).send({ error: 'Failed to get report' })
+  }
+})
+
+server.get('/api/admin/analytics/reports/:reportId/export', async (request, reply) => {
+  try {
+    const reportId = (request.params as any).reportId
+    const query = request.query as any
+    const format = (query?.format || 'json') as 'csv' | 'json' | 'pdf' | 'xlsx'
+
+    const buffer = await advancedAnalytics.exportReport(reportId, format)
+
+    reply.header('Content-Type', getContentType(format))
+    reply.header('Content-Disposition', `attachment; filename="report-${reportId}.${format}"`)
+
+    return buffer
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/reports/:reportId/export' })
+    return reply.status(500).send({ error: 'Failed to export report' })
+  }
+})
+
+server.get('/api/admin/analytics/templates', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+
+    const templates = advancedAnalytics.getTemplates(type)
+
+    return {
+      success: true,
+      templates,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/templates' })
+    return reply.status(500).send({ error: 'Failed to get templates' })
+  }
+})
+
+server.post('/api/admin/analytics/schedule', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const templateId = body?.templateId
+    const recipients = body?.recipients || []
+    const format = (body?.format || 'json') as 'csv' | 'json' | 'pdf' | 'xlsx'
+
+    if (!templateId) {
+      return reply.status(400).send({ error: 'templateId required' })
+    }
+
+    const scheduledId = advancedAnalytics.scheduleReport(templateId, recipients, format)
+
+    return {
+      success: true,
+      scheduledId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/analytics/schedule' })
+    return reply.status(500).send({ error: 'Failed to schedule report' })
+  }
+})
+
+server.get('/api/admin/analytics/predictions', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const metric = query?.metric
+    const limit = query?.limit ? parseInt(query.limit) : 100
+
+    const predictions = advancedAnalytics.getPredictions(metric, limit)
+
+    return {
+      success: true,
+      predictions,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/predictions' })
+    return reply.status(500).send({ error: 'Failed to get predictions' })
+  }
+})
+
+server.get('/api/admin/analytics/statistics', async (request, reply) => {
+  try {
+    const stats = advancedAnalytics.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/analytics/statistics' })
+    return reply.status(500).send({ error: 'Failed to get analytics statistics' })
+  }
+})
+
+// Helper function for content type
+function getContentType(format: string): string {
+  switch (format) {
+    case 'csv':
+      return 'text/csv'
+    case 'json':
+      return 'application/json'
+    case 'pdf':
+      return 'application/pdf'
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
+// Phase 7.3.1: Advanced Permissions API Endpoints
+server.get('/api/admin/permissions/sets', async (request, reply) => {
+  try {
+    const sets = advancedPermissions.getPermissionSets()
+
+    return {
+      success: true,
+      sets,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/permissions/sets' })
+    return reply.status(500).send({ error: 'Failed to get permission sets' })
+  }
+})
+
+server.get('/api/admin/permissions/sets/:setId', async (request, reply) => {
+  try {
+    const setId = (request.params as any).setId
+
+    const set = advancedPermissions.getPermissionSet(setId)
+
+    if (!set) {
+      return reply.status(404).send({ error: 'Permission set not found' })
+    }
+
+    return {
+      success: true,
+      set,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/permissions/sets/:setId' })
+    return reply.status(500).send({ error: 'Failed to get permission set' })
+  }
+})
+
+server.post('/api/admin/permissions/users/:userId/assign', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const body = request.body as any
+    const permissionSetId = body?.permissionSetId
+
+    if (!permissionSetId) {
+      return reply.status(400).send({ error: 'permissionSetId required' })
+    }
+
+    advancedPermissions.assignPermissionSet(userId, permissionSetId)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/permissions/users/:userId/assign' })
+    return reply.status(500).send({ error: 'Failed to assign permission set' })
+  }
+})
+
+server.get('/api/admin/permissions/users/:userId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+
+    const userPermission = advancedPermissions.getUserPermissions(userId)
+
+    return {
+      success: true,
+      userPermission,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/permissions/users/:userId' })
+    return reply.status(500).send({ error: 'Failed to get user permissions' })
+  }
+})
+
+server.post('/api/admin/permissions/users/:userId/permissions', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const body = request.body as any
+    const permission = body?.permission
+
+    if (!permission) {
+      return reply.status(400).send({ error: 'permission required' })
+    }
+
+    advancedPermissions.addCustomPermission(userId, permission)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/permissions/users/:userId/permissions' })
+    return reply.status(500).send({ error: 'Failed to add custom permission' })
+  }
+})
+
+server.delete('/api/admin/permissions/users/:userId/permissions/:permissionId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const permissionId = (request.params as any).permissionId
+
+    advancedPermissions.removeCustomPermission(userId, permissionId)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/admin/permissions/users/:userId/permissions/:permissionId' })
+    return reply.status(500).send({ error: 'Failed to remove custom permission' })
+  }
+})
+
+server.post('/api/admin/permissions/delegate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const fromUserId = body?.fromUserId
+    const toUserId = body?.toUserId
+    const permissionSetId = body?.permissionSetId
+    const expiresAt = body?.expiresAt ? new Date(body.expiresAt) : undefined
+
+    if (!fromUserId || !toUserId || !permissionSetId) {
+      return reply.status(400).send({ error: 'fromUserId, toUserId, and permissionSetId required' })
+    }
+
+    const delegationId = advancedPermissions.delegatePermissions(fromUserId, toUserId, permissionSetId, expiresAt)
+
+    return {
+      success: true,
+      delegationId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/permissions/delegate' })
+    return reply.status(500).send({ error: 'Failed to delegate permissions' })
+  }
+})
+
+server.post('/api/admin/permissions/delegate/:delegationId/revoke', async (request, reply) => {
+  try {
+    const delegationId = (request.params as any).delegationId
+
+    advancedPermissions.revokeDelegation(delegationId)
+
+    return {
+      success: true,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/permissions/delegate/:delegationId/revoke' })
+    return reply.status(500).send({ error: 'Failed to revoke delegation' })
+  }
+})
+
+server.get('/api/admin/permissions/check', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const userId = query?.userId
+    const resource = query?.resource
+    const action = query?.action
+
+    if (!userId || !resource || !action) {
+      return reply.status(400).send({ error: 'userId, resource, and action required' })
+    }
+
+    const hasPermission = advancedPermissions.hasPermission(userId, resource, action)
+
+    return {
+      success: true,
+      hasPermission,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/permissions/check' })
+    return reply.status(500).send({ error: 'Failed to check permission' })
+  }
+})
+
+server.get('/api/admin/permissions/statistics', async (request, reply) => {
+  try {
+    const stats = advancedPermissions.getStatistics()
+
+    return {
+      success: true,
+      statistics: stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/permissions/statistics' })
+    return reply.status(500).send({ error: 'Failed to get permissions statistics' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -6756,8 +7107,16 @@ const start = async () => {
       await advancedAdminCache.initialize()
       logInfo('✅ Advanced Admin Cache initialized')
 
+      // Initialize Advanced Analytics
+      await advancedAnalytics.initialize()
+      logInfo('✅ Advanced Analytics initialized')
+
+      // Initialize Advanced Permissions
+      await advancedPermissions.initialize()
+      logInfo('✅ Advanced Permissions initialized')
+
       // Initialize WebSocket Server (after server.listen)
-      logInfo('✅ Phase 7.3.1 Professional Enhancements initialized (70%)')
+      logInfo('✅ Phase 7.3.1 Professional Enhancements initialized (100%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.3.1 initialization' })
       logInfo('⚠️ Phase 7.3.1 not available, continuing without it')
