@@ -1557,6 +1557,10 @@ import { userAnalyticsSystem } from './users/analytics'
 // Phase 5: Ultra-Intelligence & Surooh Neural Integration
 import { suroohNeuralEngine } from './neural/engine'
 import { nicholasCoreIntegration } from './neural/integration'
+import { gpuAccelerationSystem } from './neural/gpu'
+import { modelOptimizationSystem } from './neural/optimization'
+import { performanceProfilingSystem } from './neural/profiling'
+import { neuralMemorySystem } from './neural/memory'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -2793,6 +2797,265 @@ server.post('/api/ai/unified/agent/:agentName', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/ai/unified/agent/:agentName' })
     return reply.status(500).send({ error: 'Failed to generate agent response' })
+  }
+})
+
+// Phase 5: GPU Acceleration API
+server.get('/api/neural/gpu/status', async (request, reply) => {
+  try {
+    const health = await gpuAccelerationSystem.healthCheck()
+    const devices = gpuAccelerationSystem.getDevices()
+    const activeDevice = gpuAccelerationSystem.getActiveDevice()
+    const stats = activeDevice ? gpuAccelerationSystem.getStats(activeDevice.id) : null
+
+    return {
+      success: true,
+      health,
+      devices,
+      activeDevice,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/gpu/status' })
+    return reply.status(500).send({ error: 'Failed to get GPU status' })
+  }
+})
+
+// Phase 5: Model Optimization API
+server.post('/api/neural/optimize', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const modelPath = body?.modelPath
+    const config = body?.config
+
+    if (!modelPath) {
+      return reply.status(400).send({ error: 'modelPath required' })
+    }
+
+    const result = await modelOptimizationSystem.optimizeModel(modelPath, config)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/optimize' })
+    return reply.status(500).send({ error: 'Failed to optimize model' })
+  }
+})
+
+server.get('/api/neural/optimize/recommendations', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const currentResponseTime = parseFloat(query?.responseTime || '250')
+    const currentMemoryUsage = parseFloat(query?.memoryUsage || '3000000000')
+
+    const recommendations = await modelOptimizationSystem.getOptimizationRecommendations(
+      currentResponseTime,
+      currentMemoryUsage
+    )
+
+    return {
+      success: true,
+      recommendations,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/optimize/recommendations' })
+    return reply.status(500).send({ error: 'Failed to get optimization recommendations' })
+  }
+})
+
+// Phase 5: Performance Profiling API
+server.get('/api/neural/performance/stats', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const startDate = query?.start ? new Date(query.start) : undefined
+    const endDate = query?.end ? new Date(query.end) : undefined
+
+    const timeRange = startDate && endDate ? { start: startDate, end: endDate } : undefined
+
+    const stats = performanceProfilingSystem.getPerformanceStats(timeRange)
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/performance/stats' })
+    return reply.status(500).send({ error: 'Failed to get performance stats' })
+  }
+})
+
+server.get('/api/neural/performance/trends', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const period = (query?.period || 'hour') as 'hour' | 'day' | 'week'
+
+    const trends = performanceProfilingSystem.getPerformanceTrends(period)
+
+    return {
+      success: true,
+      trends,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/performance/trends' })
+    return reply.status(500).send({ error: 'Failed to get performance trends' })
+  }
+})
+
+server.get('/api/neural/performance/latency', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const startDate = query?.start ? new Date(query.start) : undefined
+    const endDate = query?.end ? new Date(query.end) : undefined
+
+    const timeRange = startDate && endDate ? { start: startDate, end: endDate } : undefined
+
+    const breakdown = performanceProfilingSystem.getLatencyBreakdown(timeRange)
+
+    return {
+      success: true,
+      breakdown,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/performance/latency' })
+    return reply.status(500).send({ error: 'Failed to get latency breakdown' })
+  }
+})
+
+server.get('/api/neural/performance/metrics', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '100', 10)
+
+    const metrics = performanceProfilingSystem.getRecentMetrics(limit)
+
+    return {
+      success: true,
+      metrics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/performance/metrics' })
+    return reply.status(500).send({ error: 'Failed to get performance metrics' })
+  }
+})
+
+// Phase 5: Neural Memory API
+server.post('/api/neural/memory', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const content = body?.content
+    const context = body?.context || []
+    const metadata = body?.metadata
+
+    if (!content) {
+      return reply.status(400).send({ error: 'content required' })
+    }
+
+    const result = await neuralMemorySystem.createMemory(content, context, metadata)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      memory: result.memory,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/memory' })
+    return reply.status(500).send({ error: 'Failed to create neural memory' })
+  }
+})
+
+server.get('/api/neural/memory/related', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const content = query?.content
+    const topK = parseInt(query?.topK || '5', 10)
+
+    if (!content) {
+      return reply.status(400).send({ error: 'content required' })
+    }
+
+    const memories = await neuralMemorySystem.findRelatedMemories(content, topK)
+
+    return {
+      success: true,
+      memories,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/memory/related' })
+    return reply.status(500).send({ error: 'Failed to find related memories' })
+  }
+})
+
+server.post('/api/neural/memory/link', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const memoryId1 = body?.memoryId1
+    const memoryId2 = body?.memoryId2
+    const relation = body?.relation || 'related'
+
+    if (!memoryId1 || !memoryId2) {
+      return reply.status(400).send({ error: 'memoryId1 and memoryId2 required' })
+    }
+
+    const result = await neuralMemorySystem.linkMemories(memoryId1, memoryId2, relation)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/memory/link' })
+    return reply.status(500).send({ error: 'Failed to link memories' })
+  }
+})
+
+server.post('/api/neural/memory/learn', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const pattern = body?.pattern
+    const context = body?.context || []
+    const learnedBehavior = body?.learnedBehavior
+
+    if (!pattern || !learnedBehavior) {
+      return reply.status(400).send({ error: 'pattern and learnedBehavior required' })
+    }
+
+    const result = await neuralMemorySystem.learnFromContext(pattern, context, learnedBehavior)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return {
+      success: true,
+      learning: result.learning,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/memory/learn' })
+    return reply.status(500).send({ error: 'Failed to learn from context' })
+  }
+})
+
+server.get('/api/neural/memory/stats', async (request, reply) => {
+  try {
+    const stats = await neuralMemorySystem.getMemoryStats()
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/memory/stats' })
+    return reply.status(500).send({ error: 'Failed to get memory stats' })
   }
 })
 
