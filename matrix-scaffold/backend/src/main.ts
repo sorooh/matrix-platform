@@ -1554,6 +1554,10 @@ import { billingSystem } from './users/billing'
 import { personalCompanionAI } from './users/companion'
 import { userAnalyticsSystem } from './users/analytics'
 
+// Phase 5: Ultra-Intelligence & Surooh Neural Integration
+import { suroohNeuralEngine } from './neural/engine'
+import { nicholasCoreIntegration } from './neural/integration'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -2580,6 +2584,215 @@ server.get('/api/users/points', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/users/points' })
     return reply.status(500).send({ error: 'Failed to get user points' })
+  }
+})
+
+// Phase 5: Surooh Neural Engine API
+server.get('/api/neural/status', async (request, reply) => {
+  try {
+    const status = await suroohNeuralEngine.healthCheck()
+    const stats = suroohNeuralEngine.getStats()
+    const config = suroohNeuralEngine.getConfig()
+
+    return {
+      success: true,
+      status,
+      stats,
+      config,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/status' })
+    return reply.status(500).send({ error: 'Failed to get neural engine status' })
+  }
+})
+
+server.post('/api/neural/generate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const maxTokens = body?.maxTokens
+    const temperature = body?.temperature
+    const systemPrompt = body?.systemPrompt
+    const context = body?.context
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    const response = await suroohNeuralEngine.generate(prompt, {
+      maxTokens,
+      temperature,
+      systemPrompt,
+      context,
+    })
+
+    return {
+      success: true,
+      response,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/generate' })
+    return reply.status(500).send({ error: 'Failed to generate response' })
+  }
+})
+
+server.post('/api/neural/stream', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const maxTokens = body?.maxTokens
+    const temperature = body?.temperature
+    const systemPrompt = body?.systemPrompt
+    const context = body?.context
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    reply.raw.setHeader('Content-Type', 'text/event-stream')
+    reply.raw.setHeader('Cache-Control', 'no-cache')
+    reply.raw.setHeader('Connection', 'keep-alive')
+    reply.raw.flushHeaders?.()
+
+    try {
+      for await (const chunk of suroohNeuralEngine.streamGenerate(prompt, {
+        maxTokens,
+        temperature,
+        systemPrompt,
+        context,
+      })) {
+        reply.raw.write(`data: ${JSON.stringify({ chunk })}\n\n`)
+      }
+      reply.raw.write('data: [DONE]\n\n')
+      reply.raw.end()
+    } catch (error: any) {
+      logError(error as Error, { context: 'POST /api/neural/stream' })
+      reply.raw.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
+      reply.raw.end()
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/stream' })
+    return reply.status(500).send({ error: 'Failed to stream response' })
+  }
+})
+
+// Phase 5: Nicholas Core Integration API
+server.get('/api/ai/unified/status', async (request, reply) => {
+  try {
+    const status = await nicholasCoreIntegration.getStatus()
+
+    return {
+      success: true,
+      status,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/ai/unified/status' })
+    return reply.status(500).send({ error: 'Failed to get unified AI status' })
+  }
+})
+
+server.post('/api/ai/unified/generate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const maxTokens = body?.maxTokens
+    const temperature = body?.temperature
+    const systemPrompt = body?.systemPrompt
+    const context = body?.context
+    const useNeural = body?.useNeural
+    const useFallback = body?.useFallback
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    const response = await nicholasCoreIntegration.generate(prompt, {
+      maxTokens,
+      temperature,
+      systemPrompt,
+      context,
+      useNeural,
+      useFallback,
+    })
+
+    return {
+      success: true,
+      response,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/ai/unified/generate' })
+    return reply.status(500).send({ error: 'Failed to generate unified response' })
+  }
+})
+
+server.post('/api/ai/unified/stream', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const prompt = body?.prompt
+    const maxTokens = body?.maxTokens
+    const temperature = body?.temperature
+    const systemPrompt = body?.systemPrompt
+    const context = body?.context
+    const useNeural = body?.useNeural
+    const useFallback = body?.useFallback
+
+    if (!prompt) {
+      return reply.status(400).send({ error: 'prompt required' })
+    }
+
+    reply.raw.setHeader('Content-Type', 'text/event-stream')
+    reply.raw.setHeader('Cache-Control', 'no-cache')
+    reply.raw.setHeader('Connection', 'keep-alive')
+    reply.raw.flushHeaders?.()
+
+    try {
+      for await (const chunk of nicholasCoreIntegration.streamGenerate(prompt, {
+        maxTokens,
+        temperature,
+        systemPrompt,
+        context,
+        useNeural,
+        useFallback,
+      })) {
+        reply.raw.write(`data: ${JSON.stringify({ chunk: chunk.chunk, source: chunk.source })}\n\n`)
+      }
+      reply.raw.write('data: [DONE]\n\n')
+      reply.raw.end()
+    } catch (error: any) {
+      logError(error as Error, { context: 'POST /api/ai/unified/stream' })
+      reply.raw.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
+      reply.raw.end()
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/ai/unified/stream' })
+    return reply.status(500).send({ error: 'Failed to stream unified response' })
+  }
+})
+
+server.post('/api/ai/unified/agent/:agentName', async (request, reply) => {
+  try {
+    const agentName = (request.params as any).agentName
+    const body = request.body as any
+    const message = body?.message
+    const useNeural = body?.useNeural
+    const useFallback = body?.useFallback
+
+    if (!message) {
+      return reply.status(400).send({ error: 'message required' })
+    }
+
+    const response = await nicholasCoreIntegration.agentChat(agentName, message, {
+      useNeural,
+      useFallback,
+    })
+
+    return {
+      success: true,
+      response,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/ai/unified/agent/:agentName' })
+    return reply.status(500).send({ error: 'Failed to generate agent response' })
   }
 })
 
