@@ -5434,6 +5434,249 @@ server.get('/api/security/vulnerability', async (request, reply) => {
   }
 })
 
+// Phase 7.3: Admin Dashboard API
+server.get('/api/admin/dashboard/overview', async (request, reply) => {
+  try {
+    const overview = await adminDashboard.getOverview()
+
+    return {
+      success: true,
+      overview,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/dashboard/overview' })
+    return reply.status(500).send({ error: 'Failed to get dashboard overview' })
+  }
+})
+
+server.get('/api/admin/dashboard/modules', async (request, reply) => {
+  try {
+    const modules = adminDashboard.getModules()
+
+    return {
+      success: true,
+      modules,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/dashboard/modules' })
+    return reply.status(500).send({ error: 'Failed to get dashboard modules' })
+  }
+})
+
+server.get('/api/admin/dashboard/module/:moduleId', async (request, reply) => {
+  try {
+    const moduleId = (request.params as any).moduleId
+
+    const module = adminDashboard.getModule(moduleId)
+
+    if (!module) {
+      return reply.status(404).send({ error: 'Module not found' })
+    }
+
+    return {
+      success: true,
+      module,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/dashboard/module/:moduleId' })
+    return reply.status(500).send({ error: 'Failed to get module' })
+  }
+})
+
+server.get('/api/admin/dashboard/notifications', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '20')
+    const unreadOnly = query?.unreadOnly === 'true'
+
+    const notifications = adminDashboard.getNotifications(limit, unreadOnly)
+
+    return {
+      success: true,
+      notifications,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/dashboard/notifications' })
+    return reply.status(500).send({ error: 'Failed to get notifications' })
+  }
+})
+
+server.post('/api/admin/dashboard/notification/:notificationId/read', async (request, reply) => {
+  try {
+    const notificationId = (request.params as any).notificationId
+
+    adminDashboard.markNotificationAsRead(notificationId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/dashboard/notification/:notificationId/read' })
+    return reply.status(500).send({ error: 'Failed to mark notification as read' })
+  }
+})
+
+server.post('/api/admin/dashboard/notifications/read-all', async (request, reply) => {
+  try {
+    adminDashboard.markAllNotificationsAsRead()
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/dashboard/notifications/read-all' })
+    return reply.status(500).send({ error: 'Failed to mark all notifications as read' })
+  }
+})
+
+server.delete('/api/admin/dashboard/notifications', async (request, reply) => {
+  try {
+    adminDashboard.clearNotifications()
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/admin/dashboard/notifications' })
+    return reply.status(500).send({ error: 'Failed to clear notifications' })
+  }
+})
+
+// Phase 7.3: Keys & Integrations Manager API
+server.post('/api/admin/integrations', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const integrationId = await keysAndIntegrationsManager.createIntegration(config)
+
+    return {
+      success: true,
+      integrationId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/integrations' })
+    return reply.status(500).send({ error: 'Failed to create integration' })
+  }
+})
+
+server.get('/api/admin/integrations', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+
+    const integrations = type
+      ? keysAndIntegrationsManager.getIntegrationsByType(type)
+      : keysAndIntegrationsManager.getAllIntegrations()
+
+    return {
+      success: true,
+      integrations,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/integrations' })
+    return reply.status(500).send({ error: 'Failed to get integrations' })
+  }
+})
+
+server.get('/api/admin/integrations/:integrationId', async (request, reply) => {
+  try {
+    const integrationId = (request.params as any).integrationId
+
+    const integration = keysAndIntegrationsManager.getIntegration(integrationId)
+
+    if (!integration) {
+      return reply.status(404).send({ error: 'Integration not found' })
+    }
+
+    return {
+      success: true,
+      integration,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/integrations/:integrationId' })
+    return reply.status(500).send({ error: 'Failed to get integration' })
+  }
+})
+
+server.put('/api/admin/integrations/:integrationId', async (request, reply) => {
+  try {
+    const integrationId = (request.params as any).integrationId
+    const body = request.body as any
+    const updates = body?.updates
+
+    if (!updates) {
+      return reply.status(400).send({ error: 'updates required' })
+    }
+
+    await keysAndIntegrationsManager.updateIntegration(integrationId, updates)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/admin/integrations/:integrationId' })
+    return reply.status(500).send({ error: 'Failed to update integration' })
+  }
+})
+
+server.delete('/api/admin/integrations/:integrationId', async (request, reply) => {
+  try {
+    const integrationId = (request.params as any).integrationId
+
+    await keysAndIntegrationsManager.deleteIntegration(integrationId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/admin/integrations/:integrationId' })
+    return reply.status(500).send({ error: 'Failed to delete integration' })
+  }
+})
+
+server.post('/api/admin/integrations/:integrationId/test', async (request, reply) => {
+  try {
+    const integrationId = (request.params as any).integrationId
+
+    const test = await keysAndIntegrationsManager.testConnection(integrationId)
+
+    return {
+      success: true,
+      test,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/admin/integrations/:integrationId/test' })
+    return reply.status(500).send({ error: 'Failed to test connection' })
+  }
+})
+
+server.get('/api/admin/integrations/:integrationId/tests', async (request, reply) => {
+  try {
+    const integrationId = (request.params as any).integrationId
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '20')
+
+    const tests = keysAndIntegrationsManager.getTestHistory(integrationId, limit)
+
+    return {
+      success: true,
+      tests,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/integrations/:integrationId/tests' })
+    return reply.status(500).send({ error: 'Failed to get test history' })
+  }
+})
+
+server.get('/api/admin/integrations/statistics', async (request, reply) => {
+  try {
+    const statistics = keysAndIntegrationsManager.getStatistics()
+
+    return {
+      success: true,
+      statistics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/admin/integrations/statistics' })
+    return reply.status(500).send({ error: 'Failed to get statistics' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
