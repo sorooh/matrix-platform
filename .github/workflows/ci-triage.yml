@@ -1,0 +1,65 @@
+name: CI - automated triage
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    env:
+      TRIAGE_POST_TOKEN: ${{ secrets.TRIAGE_POST_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan logs and workspace for error patterns
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Scanning repository for error patterns..."
+          patterns='error|failed|exception|traceback|panic'
+          # Search repository files (limit to common logs and js files)
+          found=$(grep -Ein --no-messages -R --exclude-dir=.git --exclude=*.png --exclude=*.jpg --exclude=*.zip "$patterns" . || true)
+          if [ -z "$found" ]; then
+            echo "No error patterns found."
+            exit 0
+          fi
+          echo "$found" > errors.txt
+          echo "Found issues; posting a comment to PR #${PR_NUMBER}"
+      - name: Upload triage errors as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-errors
+          path: errors.txt
+
+      - name: Add workflow summary
+        if: always()
+        run: |
+          echo "Found issues; uploaded errors.txt as 'triage-errors' artifact." >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Node (for poster script)
+        if: ${{ env.TRIAGE_POST_TOKEN != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Optionally post triage comment (requires TRIAGE_POST_TOKEN secret)
+        if: ${{ env.TRIAGE_POST_TOKEN != '' }}
+        run: |
+          echo "Posting triage comment using TRIAGE_POST_TOKEN..."
+          # pass explicit path to errors.txt so the script is deterministic
+          node ./.github/scripts/post-triage-comment-v2.js errors.txt
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          ERRORS_PATH: errors.txt

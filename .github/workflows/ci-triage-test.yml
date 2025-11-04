@@ -1,0 +1,56 @@
+name: CI - triage poster test
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to post to (for test). If empty, defaults to 1.'
+        required: false
+        default: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create sample errors.txt
+        run: |
+          printf "Sample error: synthetic test\nAnother line\n" > errors.txt
+
+      - name: Upload sample artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-errors-sample
+          path: errors.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run poster script in DRY_RUN (safe)
+        run: |
+          echo "Running poster in DRY_RUN mode (will not call GitHub)."
+          node ./.github/scripts/post-triage-comment-v2.js errors.txt
+        env:
+          DRY_RUN: '1'
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || '1' }}
+
+      - name: Optionally post real comment (requires TRIAGE_POST_TOKEN)
+        run: |
+          if [ -z "${TRIAGE_POST_TOKEN:-}" ]; then
+            echo "TRIAGE_POST_TOKEN not set; skipping real post."
+            exit 0
+          fi
+          echo "TRIAGE_POST_TOKEN present — posting a real comment to PR #${{ github.event.inputs.pr_number || '1' }}."
+          node ./.github/scripts/post-triage-comment-v2.js errors.txt
+        env:
+          TRIAGE_POST_TOKEN: ${{ secrets.TRIAGE_POST_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || '1' }}

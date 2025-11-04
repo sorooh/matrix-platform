@@ -1,0 +1,17 @@
+Branch & PR instructions
+
+1) Create a feature branch from the current branch (recommended name):
+
+   git checkout -b feature/matrix-dashboard
+
+2) Commit the scaffold changes (already staged in workspace) and push:
+
+   git add matrix-scaffold
+   git commit -m "feat(matrix): add dashboard MVP scaffold (simulated runner)"
+   git push origin feature/matrix-dashboard
+
+3) Open a PR using the contents of `matrix-scaffold/PR_TEMPLATE.md` and attach a short GIF demonstrating the flow.
+
+4) Reviewers should follow `matrix-scaffold/ACCEPTANCE.md` to verify Milestone 1.
+
+If you prefer I prepare the branch and open the PR for you, grant push access or push the branch I prepare locally.

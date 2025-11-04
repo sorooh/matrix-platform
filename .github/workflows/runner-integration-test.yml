@@ -1,0 +1,71 @@
+name: CI - runner integration test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  runner-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ENABLE_PER_JOB_RUNNER: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend deps
+        run: npm --prefix matrix-scaffold/backend ci
+
+      - name: Install puppeteer
+        run: npm --prefix matrix-scaffold/backend i puppeteer --no-audit --no-fund --no-progress
+
+      - name: Start backend
+        run: |
+          nohup npm --prefix matrix-scaffold/backend run dev > backend.log 2>&1 &
+          echo $! > backend.pid
+
+      - name: Wait for backend
+        run: |
+          n=0
+          until curl -sSf http://localhost:3000/api/apps >/dev/null 2>&1 || [ $n -ge 30 ]; do
+            n=$((n+1))
+            sleep 1
+          done
+          if [ $n -ge 30 ]; then
+            echo "backend did not start"
+            cat backend.log || true
+            exit 1
+          fi
+
+      - name: Trigger snapshot job (uses per-job runner)
+        run: |
+          set -e
+          id=$(curl -s -X POST http://localhost:3000/api/snapshot/admin-dashboard | jq -r '.id')
+          echo "snapshot id=$id"
+          for i in `seq 1 60`; do
+            status=$(curl -s http://localhost:3000/api/snapshots/$id | jq -r '.status') || status=""
+            echo "status=$status"
+            if [ "$status" = "completed" ] || [ "$status" = "failed" ]; then break; fi
+            sleep 2
+          done
+          curl -s http://localhost:3000/api/snapshots/$id -o /tmp/snapshot_meta.json || true
+          cat /tmp/snapshot_meta.json || true
+
+      - name: Upload storage artifact
+        if: always()
+        run: |
+          cd matrix-scaffold || exit 0
+          tar -czf /tmp/storage-artifacts.tar.gz storage || true
+        continue-on-error: true
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-storage
+          path: /tmp/storage-artifacts.tar.gz

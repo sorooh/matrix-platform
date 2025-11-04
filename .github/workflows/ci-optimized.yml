@@ -1,0 +1,162 @@
+name: CI - optimized (diagnostics)
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+  
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Install & Test (root / client / server) - diagnostic
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Environment diagnostics
+        run: |
+          echo "== ENV DIAGNOSTICS =="
+          uname -a || true
+          echo "User: $(whoami || true)"
+          echo "Disk usage:"
+          df -h || true
+          echo "Memory:"
+          free -h || true
+          node --version || true
+          npm --version || true
+
+      - name: Install root dependencies (with logs)
+        working-directory: .
+        run: |
+          set -euo pipefail
+          echo "-> Installing root (.)"
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee root-npm-ci.log || (echo "npm ci failed for root, printing log:"; cat root-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee root-npm-install.log || (echo "npm install failed for root, printing log:"; cat root-npm-install.log; exit 254)
+            fi
+          else
+            echo "no package.json at root, skipping"
+          fi
+
+      - name: Install client dependencies (with logs)
+        working-directory: ./client
+        run: |
+          set -euo pipefail
+          echo "-> Installing client (./client)"
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee client-npm-ci.log || (echo "npm ci failed for client, printing log:"; cat client-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee client-npm-install.log || (echo "npm install failed for client, printing log:"; cat client-npm-install.log; exit 254)
+            fi
+          else
+            echo "no package.json in ./client, skipping"
+          fi
+
+      - name: Install server dependencies (with logs)
+        working-directory: ./server
+        run: |
+          set -euo pipefail
+          echo "-> Installing server (./server)"
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci 2>&1 | tee server-npm-ci.log || (echo "npm ci failed for server, printing log:"; cat server-npm-ci.log; exit 254)
+            else
+              npm install 2>&1 | tee server-npm-install.log || (echo "npm install failed for server, printing log:"; cat server-npm-install.log; exit 254)
+            fi
+          else
+            echo "no package.json in ./server, skipping"
+          fi
+
+      - name: Run server tests
+        working-directory: ./server
+        run: |
+          set -euo pipefail
+          if [ -f package.json ]; then
+            echo "-> Running server tests"
+            npm test --if-present 2>&1 | tee server-test.log || (echo "server tests failed, see server-test.log"; cat server-test.log; exit 1)
+          else
+            echo "no server package.json, skipping server tests"
+          fi
+
+      - name: Run client tests
+        working-directory: ./client
+        run: |
+          set -euo pipefail
+          if [ -f package.json ]; then
+            echo "-> Running client tests"
+            npm test --if-present 2>&1 | tee client-test.log || (echo "client tests failed, see client-test.log"; cat client-test.log; exit 1)
+          else
+            echo "no client package.json, skipping client tests"
+          fi
+
+      - name: Upload diagnostic logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-diagnostics-logs
+          path: |
+            root-npm-ci.log
+            root-npm-install.log
+            client/client-npm-ci.log
+            client/client-npm-install.log
+            server/server-npm-ci.log
+            server/server-npm-install.log
+            client/client-test.log
+            server/server-test.log
+            client/*.log
+            server/*.log
+            *.log
+          if-no-files-found: warn
+
+      - name: Analyze logs and comment on PR (automated triage)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Scanning workspace for error patterns..."
+          patterns='error|failed|exception|traceback|panic'
+          # Find matching lines across logs (if any)
+          found=$(grep -Ein --no-messages "$patterns" . || true)
+          if [ -z "$found" ]; then
+            echo "No error patterns found in logs."
+            exit 0
+          fi
+          echo "Error candidates found; saving excerpt..."
+          echo "$found" > errors.txt
+          # Limit comment size
+          summary=$(head -n 500 errors.txt || true)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "Posting comment to PR #$PR_NUMBER"
+          python - <<'PY'
+import os,sys,json,urllib.request
+repo=os.environ['GITHUB_REPOSITORY']
+pr=os.environ['PR_NUMBER']
+token=os.environ['GITHUB_TOKEN']
+summary=open('errors.txt','r',encoding='utf-8').read()
+body = "Automated CI analysis detected potential issues:\n\n```\n" + summary[:12000] + "\n```"
+data=json.dumps({"body": body})
+req=urllib.request.Request(f"https://api.github.com/repos/{repo}/issues/{pr}/comments", data=data.encode('utf-8'), headers={"Authorization":f"Bearer {token}","Content-Type":"application/json","User-Agent":"ci-triage"})
+resp=urllib.request.urlopen(req)
+print(resp.read().decode())
+PY

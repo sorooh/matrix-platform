@@ -1,0 +1,160 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+  REGION: 'us-east-1'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: matrix_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: matrix-scaffold/backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: matrix-scaffold/backend
+        run: npm ci
+      
+      - name: Generate Prisma Client
+        working-directory: matrix-scaffold/backend
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/matrix_test
+      
+      - name: Run Prisma migrations
+        working-directory: matrix-scaffold/backend
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/matrix_test
+      
+      - name: Run tests
+        working-directory: matrix-scaffold/backend
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/matrix_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+      
+      - name: Build
+        working-directory: matrix-scaffold/backend
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/matrix_test
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: matrix-scaffold/backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: matrix-scaffold/backend
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: matrix-scaffold/backend
+        run: npm run lint || true
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./matrix-scaffold/backend
+          push: true
+          tags: |
+            matrix-platform/backend:latest
+            matrix-platform/backend:${{ github.sha }}
+          cache-from: type=registry,ref=matrix-platform/backend:latest
+          cache-to: type=inline
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://api.matrix-platform.com
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to US Region
+        run: |
+          echo "Deploying to US region..."
+          # Add deployment commands here
+      
+      - name: Deploy to EU Region
+        run: |
+          echo "Deploying to EU region..."
+          # Add deployment commands here
+      
+      - name: Deploy to Asia Region
+        run: |
+          echo "Deploying to Asia region..."
+          # Add deployment commands here
+

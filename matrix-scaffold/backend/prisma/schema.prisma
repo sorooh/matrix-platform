@@ -1,0 +1,163 @@
+// Prisma Schema for Matrix Platform
+// Global-Ready Architecture with PostgreSQL + pgvector
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enable pgvector extension
+// Run: CREATE EXTENSION IF NOT EXISTS vector;
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  userId      String?  // For multi-tenancy
+  region      String?  @default("us-east-1")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobs        Job[]
+  tasks       Task[]
+  memories    Memory[]
+  artifacts   Artifact[]
+
+  @@index([userId])
+  @@index([region])
+  @@map("projects")
+}
+
+model Job {
+  id        String   @id @default(uuid())
+  projectId String
+  status    String   @default("pending") // pending | running | completed | failed
+  spec      Json     // JobSpec
+  result    Json?    // Job result
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  artifacts Artifact[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("jobs")
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  projectId String
+  type      String   // analysis | architecture | coding | testing | visual
+  status    String   @default("queued") // queued | in_progress | completed | failed
+  payload   Json?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("tasks")
+}
+
+model Memory {
+  id        String   @id @default(uuid())
+  projectId String   @default("__org__") // "__org__" for org memory
+  text      String   @db.Text
+  vector    Unsupported("vector(256)")? // pgvector - 256 dimensions
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([createdAt])
+  @@map("memory")
+}
+
+model Artifact {
+  id        String   @id @default(uuid())
+  jobId     String
+  projectId String
+  type      String   // png | html | thumb | log | generic
+  path      String?
+  url       String?  // CDN URL
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([projectId])
+  @@index([type])
+  @@map("artifacts")
+}
+
+model Bot {
+  id        String   @id @default(uuid())
+  name      String
+  role      String   // morpheus | architect | sida | vision | audit
+  status    String   @default("active") // active | inactive
+  createdAt DateTime @default(now())
+
+  @@index([role])
+  @@index([status])
+  @@map("bots")
+}
+
+model GraphEdge {
+  id        String   @id @default(uuid())
+  fromType  String   // Org | Project | Task | Job | Artifact | Memory
+  fromId    String
+  toType    String   // Org | Project | Task | Job | Artifact | Memory
+  toId      String
+  rel       String   // Relationship type
+  createdAt DateTime @default(now())
+
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+  @@index([rel])
+  @@map("graph_edges")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  resource  String
+  ip        String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model KpiSnapshot {
+  id        String   @id @default(uuid())
+  ts        DateTime @default(now())
+  kpis      Json     // KPI data
+  region    String   @default("us-east-1")
+
+  @@index([ts])
+  @@index([region])
+  @@map("kpi_snapshots")
+}
+

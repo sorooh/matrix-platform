@@ -1,0 +1,73 @@
+# Matrix Platform - Docker Compose
+# Global-Ready Architecture with PostgreSQL + Redis
+
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: matrix-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-matrix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-matrix}
+      POSTGRES_DB: ${POSTGRES_DB:-matrix}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matrix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - matrix-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: matrix-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - matrix-network
+
+  backend:
+    build:
+      context: ./matrix-scaffold/backend
+      dockerfile: ../../Dockerfile
+    container_name: matrix-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-matrix}:${POSTGRES_PASSWORD:-matrix}@postgres:5432/${POSTGRES_DB:-matrix}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: ${NODE_ENV:-development}
+      REGION: ${REGION:-us-east-1}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./matrix-scaffold/backend/logs:/app/logs
+      - ./matrix-scaffold/storage:/app/storage
+    networks:
+      - matrix-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  matrix-network:
+    driver: bridge
+
