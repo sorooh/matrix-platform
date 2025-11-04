@@ -834,6 +834,256 @@ server.post('/api/agents/evaluate', async (request, reply) => {
   }
 })
 
+// Enterprise Features API
+import { auditLogger } from './enterprise/audit'
+import { complianceSystem } from './enterprise/compliance'
+import { rbacManager } from './enterprise/rbac'
+
+// Audit Logging API
+server.get('/api/audit/logs', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const logs = await auditLogger.query({
+      userId: query.userId,
+      action: query.action,
+      resource: query.resource,
+      resourceId: query.resourceId,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      limit: Number(query.limit || 100),
+      offset: Number(query.offset || 0)
+    })
+
+    return {
+      success: true,
+      logs,
+      count: logs.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/audit/logs' })
+    return reply.status(500).send({ error: 'Failed to get audit logs' })
+  }
+})
+
+server.get('/api/audit/stats', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const stats = await auditLogger.getStats(
+      query.startDate ? new Date(query.startDate) : undefined,
+      query.endDate ? new Date(query.endDate) : undefined
+    )
+
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/audit/stats' })
+    return reply.status(500).send({ error: 'Failed to get audit stats' })
+  }
+})
+
+// Compliance API
+server.get('/api/compliance/status', async (request, reply) => {
+  try {
+    const status = complianceSystem.getStatus()
+    return {
+      success: true,
+      status
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/compliance/status' })
+    return reply.status(500).send({ error: 'Failed to get compliance status' })
+  }
+})
+
+server.post('/api/compliance/gdpr/erasure', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const userId = body?.userId
+
+    if (!userId) {
+      return reply.status(400).send({ error: 'userId required' })
+    }
+
+    const result = await complianceSystem.gdprErasure(userId)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/compliance/gdpr/erasure' })
+    return reply.status(500).send({ error: 'Failed to process GDPR erasure' })
+  }
+})
+
+server.post('/api/compliance/gdpr/portability', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const userId = body?.userId
+
+    if (!userId) {
+      return reply.status(400).send({ error: 'userId required' })
+    }
+
+    const result = await complianceSystem.gdprPortability(userId)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/compliance/gdpr/portability' })
+    return reply.status(500).send({ error: 'Failed to process GDPR portability' })
+  }
+})
+
+server.post('/api/compliance/gdpr/retention', async (request, reply) => {
+  try {
+    const result = await complianceSystem.gdprRetention()
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/compliance/gdpr/retention' })
+    return reply.status(500).send({ error: 'Failed to process GDPR retention' })
+  }
+})
+
+server.get('/api/compliance/soc2/audit', async (request, reply) => {
+  try {
+    const result = await complianceSystem.soc2AccessAudit()
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/compliance/soc2/audit' })
+    return reply.status(500).send({ error: 'Failed to get SOC2 audit' })
+  }
+})
+
+server.get('/api/compliance/iso27001/audit', async (request, reply) => {
+  try {
+    const result = await complianceSystem.iso27001SecurityAudit()
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/compliance/iso27001/audit' })
+    return reply.status(500).send({ error: 'Failed to get ISO27001 audit' })
+  }
+})
+
+// RBAC API
+server.post('/api/rbac/users', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const email = body?.email
+    const role = body?.role || 'user'
+    const projects = body?.projects || []
+
+    if (!email) {
+      return reply.status(400).send({ error: 'email required' })
+    }
+
+    const result = await rbacManager.createUser(email, role, { projects })
+    return {
+      success: result.success,
+      user: result.user
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/rbac/users' })
+    return reply.status(500).send({ error: 'Failed to create user' })
+  }
+})
+
+server.get('/api/rbac/users', async (request, reply) => {
+  try {
+    const users = await rbacManager.listUsers()
+    return {
+      success: true,
+      users
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/rbac/users' })
+    return reply.status(500).send({ error: 'Failed to list users' })
+  }
+})
+
+server.get('/api/rbac/users/:userId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const user = await rbacManager.getUser(userId)
+
+    if (!user) {
+      return reply.status(404).send({ error: 'User not found' })
+    }
+
+    return {
+      success: true,
+      user
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/rbac/users/:userId' })
+    return reply.status(500).send({ error: 'Failed to get user' })
+  }
+})
+
+server.put('/api/rbac/users/:userId/role', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const body = request.body as any
+    const role = body?.role
+
+    if (!role) {
+      return reply.status(400).send({ error: 'role required' })
+    }
+
+    const result = await rbacManager.updateUserRole(userId, role)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/rbac/users/:userId/role' })
+    return reply.status(500).send({ error: 'Failed to update user role' })
+  }
+})
+
+server.post('/api/rbac/users/:userId/projects/:projectId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const projectId = (request.params as any).projectId
+
+    const result = await rbacManager.assignProject(userId, projectId)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/rbac/users/:userId/projects/:projectId' })
+    return reply.status(500).send({ error: 'Failed to assign project' })
+  }
+})
+
+server.delete('/api/rbac/users/:userId/projects/:projectId', async (request, reply) => {
+  try {
+    const userId = (request.params as any).userId
+    const projectId = (request.params as any).projectId
+
+    const result = await rbacManager.removeProject(userId, projectId)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/rbac/users/:userId/projects/:projectId' })
+    return reply.status(500).send({ error: 'Failed to remove project' })
+  }
+})
+
 // Stream chat endpoint
 server.post('/api/agents/chat/stream', async (request, reply) => {
   try {
