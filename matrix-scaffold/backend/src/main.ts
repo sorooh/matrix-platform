@@ -1549,6 +1549,10 @@ import { workflowEngine } from './automation/workflow'
 import { smartUserAccounts } from './users/accounts'
 import { personalAIMemory } from './users/personalMemory'
 import { referralSystem } from './users/referral'
+import { notificationSystem } from './users/notifications'
+import { billingSystem } from './users/billing'
+import { personalCompanionAI } from './users/companion'
+import { userAnalyticsSystem } from './users/analytics'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
