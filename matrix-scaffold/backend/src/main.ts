@@ -1575,6 +1575,9 @@ import { finalIntegrationSystem } from './neural/final'
 import { crawlerEngine } from './crawler/engine'
 import { browserSimulation } from './crawler/browserSimulation'
 import { environmentSandbox } from './crawler/sandbox'
+import { knowledgeGraphIntegration } from './crawler/knowledgeGraph'
+import { marketCollector } from './crawler/marketCollector'
+import { governanceLayer } from './crawler/governance'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -3883,6 +3886,386 @@ server.get('/api/sandbox/statistics', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/sandbox/statistics' })
     return reply.status(500).send({ error: 'Failed to get sandbox statistics' })
+  }
+})
+
+// Phase 6: Knowledge Graph Integration API
+server.post('/api/knowledge/process', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const result = body?.result
+
+    if (!result) {
+      return reply.status(400).send({ error: 'result required' })
+    }
+
+    const processed = await knowledgeGraphIntegration.processCrawlResult(result)
+
+    return {
+      success: true,
+      processed,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/knowledge/process' })
+    return reply.status(500).send({ error: 'Failed to process crawl result' })
+  }
+})
+
+server.post('/api/knowledge/search', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const query = body?.query
+    const options = body?.options
+
+    if (!query) {
+      return reply.status(400).send({ error: 'query required' })
+    }
+
+    const graphData = await knowledgeGraphIntegration.searchKnowledgeGraph(query, options)
+
+    return {
+      success: true,
+      graphData,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/knowledge/search' })
+    return reply.status(500).send({ error: 'Failed to search knowledge graph' })
+  }
+})
+
+server.get('/api/knowledge/stats', async (request, reply) => {
+  try {
+    const stats = await knowledgeGraphIntegration.getStatistics()
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/knowledge/stats' })
+    return reply.status(500).send({ error: 'Failed to get knowledge graph statistics' })
+  }
+})
+
+server.post('/api/knowledge/link-memory', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const content = body?.content
+    const metadata = body?.metadata
+
+    if (!content) {
+      return reply.status(400).send({ error: 'content required' })
+    }
+
+    const memoryId = await knowledgeGraphIntegration.linkWithMemoryCore(content, metadata)
+
+    return {
+      success: true,
+      memoryId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/knowledge/link-memory' })
+    return reply.status(500).send({ error: 'Failed to link with Memory Core' })
+  }
+})
+
+server.post('/api/knowledge/link-nicholas', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const query = body?.query
+    const context = body?.context
+
+    if (!query) {
+      return reply.status(400).send({ error: 'query required' })
+    }
+
+    const result = await knowledgeGraphIntegration.linkWithNicholasEngine(query, context)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/knowledge/link-nicholas' })
+    return reply.status(500).send({ error: 'Failed to link with Nicholas Engine' })
+  }
+})
+
+// Phase 6: Market & Trend Collector API
+server.post('/api/market/prices', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const options = body?.options
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const prices = await marketCollector.collectPrices(url, options)
+
+    return {
+      success: true,
+      prices,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/market/prices' })
+    return reply.status(500).send({ error: 'Failed to collect prices' })
+  }
+})
+
+server.post('/api/market/competitor', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const competitor = await marketCollector.collectCompetitorData(url)
+
+    return {
+      success: true,
+      competitor,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/market/competitor' })
+    return reply.status(500).send({ error: 'Failed to collect competitor data' })
+  }
+})
+
+server.post('/api/market/marketing', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const type = body?.type
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const content = await marketCollector.collectMarketingContent(url, type)
+
+    return {
+      success: true,
+      content,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/market/marketing' })
+    return reply.status(500).send({ error: 'Failed to collect marketing content' })
+  }
+})
+
+server.post('/api/market/report', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const date = body?.date ? new Date(body.date) : undefined
+
+    const report = await marketCollector.generateDailyReport(date)
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/market/report' })
+    return reply.status(500).send({ error: 'Failed to generate daily report' })
+  }
+})
+
+server.get('/api/market/prices/history', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const product = query?.product
+    const limit = query?.limit ? parseInt(query.limit, 10) : undefined
+
+    const prices = marketCollector.getPriceHistory(product, limit)
+
+    return {
+      success: true,
+      prices,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/market/prices/history' })
+    return reply.status(500).send({ error: 'Failed to get price history' })
+  }
+})
+
+server.get('/api/market/competitors', async (request, reply) => {
+  try {
+    const competitors = marketCollector.getCompetitors()
+
+    return {
+      success: true,
+      competitors,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/market/competitors' })
+    return reply.status(500).send({ error: 'Failed to get competitors' })
+  }
+})
+
+server.get('/api/market/marketing', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const type = query?.type
+    const limit = query?.limit ? parseInt(query.limit, 10) : undefined
+
+    const content = marketCollector.getMarketingContent(type, limit)
+
+    return {
+      success: true,
+      content,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/market/marketing' })
+    return reply.status(500).send({ error: 'Failed to get marketing content' })
+  }
+})
+
+// Phase 6: Governance & Legal Layer API
+server.post('/api/governance/request', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const options = body?.options
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const operationId = await governanceLayer.requestCrawlOperation(url, options)
+
+    return {
+      success: true,
+      operationId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/request' })
+    return reply.status(500).send({ error: error.message || 'Failed to request crawl operation' })
+  }
+})
+
+server.post('/api/governance/approve', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const operationId = body?.operationId
+    const options = body?.options
+
+    if (!operationId) {
+      return reply.status(400).send({ error: 'operationId required' })
+    }
+
+    await governanceLayer.approveOperation(operationId, options)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/approve' })
+    return reply.status(500).send({ error: error.message || 'Failed to approve operation' })
+  }
+})
+
+server.post('/api/governance/reject', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const operationId = body?.operationId
+    const options = body?.options
+
+    if (!operationId) {
+      return reply.status(400).send({ error: 'operationId required' })
+    }
+
+    await governanceLayer.rejectOperation(operationId, options)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/reject' })
+    return reply.status(500).send({ error: error.message || 'Failed to reject operation' })
+  }
+})
+
+server.get('/api/governance/operation/:operationId', async (request, reply) => {
+  try {
+    const operationId = (request.params as any).operationId
+
+    const operation = governanceLayer.getOperation(operationId)
+
+    if (!operation) {
+      return reply.status(404).send({ error: 'Operation not found' })
+    }
+
+    return {
+      success: true,
+      operation,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/operation/:operationId' })
+    return reply.status(500).send({ error: 'Failed to get operation' })
+  }
+})
+
+server.get('/api/governance/pending', async (request, reply) => {
+  try {
+    const pending = governanceLayer.getPendingOperations()
+
+    return {
+      success: true,
+      pending,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/pending' })
+    return reply.status(500).send({ error: 'Failed to get pending operations' })
+  }
+})
+
+server.get('/api/governance/policies', async (request, reply) => {
+  try {
+    const policies = governanceLayer.getAllPolicies()
+
+    return {
+      success: true,
+      policies,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/policies' })
+    return reply.status(500).send({ error: 'Failed to get policies' })
+  }
+})
+
+server.post('/api/governance/policies', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const policy = body?.policy
+
+    if (!policy) {
+      return reply.status(400).send({ error: 'policy required' })
+    }
+
+    governanceLayer.addPolicy(policy)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/policies' })
+    return reply.status(500).send({ error: 'Failed to add policy' })
+  }
+})
+
+server.get('/api/governance/report', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const startDate = query?.startDate ? new Date(query.startDate) : undefined
+    const endDate = query?.endDate ? new Date(query.endDate) : undefined
+
+    const report = await governanceLayer.generateComplianceReport(startDate, endDate)
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/report' })
+    return reply.status(500).send({ error: 'Failed to generate compliance report' })
   }
 })
 
