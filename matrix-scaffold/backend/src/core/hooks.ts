@@ -38,7 +38,23 @@ export function registerLifecycleHooks() {
       await postSlack(`Job ${d.id} status: ${d.status}`)
     }
 
-    if (e.type === 'job.completed' || e.type === 'job.failed' || e.type === 'task.completed' || e.type === 'task.failed') {
+            if (e.type === 'job.completed' || e.type === 'job.failed') {
+              // Record job metrics
+              try {
+                const { recordJob } = await import('../monitoring/prometheus')
+                const job = await db.getJob(d.id)
+                if (job) {
+                  const duration = job.updatedAt
+                    ? new Date(job.updatedAt).getTime() - new Date(job.createdAt).getTime()
+                    : 0
+                  recordJob((job.spec as any)?.kind || 'unknown', e.type === 'job.completed' ? 'completed' : 'failed', duration)
+                }
+              } catch (error) {
+                logger.warn('Failed to record job metrics:', error)
+              }
+            }
+
+            if (e.type === 'job.completed' || e.type === 'job.failed' || e.type === 'task.completed' || e.type === 'task.failed') {
       try {
         const { path, text } = flushLogs(d.id)
         // persist artifact in db (local path)

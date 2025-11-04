@@ -22,6 +22,13 @@ import { MemoryRecord } from './core/schema'
 import { db as coreDb } from './core/storage'
 import { captureKpisSnapshot, listKpis } from './core/metrics'
 import { getHealthStatus } from './core/health'
+import { securitySystem } from './enterprise/security'
+import { recordHTTPRequest, recordAgentExecution, recordJob, updateMemoryUsage, updateCacheHitRate, updateActiveConnections } from './monitoring/prometheus'
+import { advancedCache } from './performance/cache'
+import { performanceOptimizer } from './performance/optimizer'
+import { loadBalancer } from './scalability/loadBalancer'
+import { autoScaler } from './scalability/autoScaler'
+import { webhookSystem } from './integrations/webhooks'
 
 // Global-Ready Configuration
 import { prisma, enablePgVector, checkDatabaseHealth, disconnectDatabase } from './config/database'
@@ -1084,6 +1091,427 @@ server.delete('/api/rbac/users/:userId/projects/:projectId', async (request, rep
   }
 })
 
+// Phase 3 - Enterprise-Grade System API
+import { securitySystem } from './enterprise/security'
+import { getPrometheusMetrics, recordHTTPRequest, recordAgentExecution, recordJob, updateMemoryUsage, updateCacheHitRate, updateActiveConnections } from './monitoring/prometheus'
+import { advancedCache } from './performance/cache'
+import { performanceOptimizer } from './performance/optimizer'
+import { loadBalancer } from './scalability/loadBalancer'
+import { autoScaler } from './scalability/autoScaler'
+import { webhookSystem } from './integrations/webhooks'
+import { apiGateway } from './api/gateway'
+
+// Security API
+server.get('/api/security/status', async (request, reply) => {
+  try {
+    const stats = securitySystem.getSecurityStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/status' })
+    return reply.status(500).send({ error: 'Failed to get security status' })
+  }
+})
+
+server.post('/api/security/scan', async (request, reply) => {
+  try {
+    const result = await securitySystem.scanVulnerabilities()
+    return {
+      success: true,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/security/scan' })
+    return reply.status(500).send({ error: 'Failed to scan vulnerabilities' })
+  }
+})
+
+server.get('/api/security/report', async (request, reply) => {
+  try {
+    const report = await securitySystem.generateSecurityReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/report' })
+    return reply.status(500).send({ error: 'Failed to generate security report' })
+  }
+})
+
+server.get('/api/security/events', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const limit = Number(query?.limit || 100)
+    const events = securitySystem.getSecurityEvents(limit)
+    return {
+      success: true,
+      events,
+      count: events.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/security/events' })
+    return reply.status(500).send({ error: 'Failed to get security events' })
+  }
+})
+
+// Monitoring API - Prometheus
+// Prometheus metrics endpoint (replaces simple metrics)
+server.get('/metrics', async (request, reply) => {
+  try {
+    const metrics = await getPrometheusMetrics()
+    reply.type('text/plain')
+    return metrics
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /metrics' })
+    return reply.status(500).send({ error: 'Failed to get metrics' })
+  }
+})
+
+// Performance API
+server.get('/api/performance/cache/stats', async (request, reply) => {
+  try {
+    const stats = advancedCache.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/performance/cache/stats' })
+    return reply.status(500).send({ error: 'Failed to get cache stats' })
+  }
+})
+
+server.post('/api/performance/cache/clear', async (request, reply) => {
+  try {
+    await advancedCache.clear()
+    return {
+      success: true,
+      message: 'Cache cleared'
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/performance/cache/clear' })
+    return reply.status(500).send({ error: 'Failed to clear cache' })
+  }
+})
+
+server.get('/api/performance/optimizations', async (request, reply) => {
+  try {
+    const optimizations = await performanceOptimizer.generateOptimizations()
+    return {
+      success: true,
+      optimizations
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/performance/optimizations' })
+    return reply.status(500).send({ error: 'Failed to get optimizations' })
+  }
+})
+
+// Scalability API
+server.get('/api/scalability/load-balancer/stats', async (request, reply) => {
+  try {
+    const stats = loadBalancer.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/scalability/load-balancer/stats' })
+    return reply.status(500).send({ error: 'Failed to get load balancer stats' })
+  }
+})
+
+server.get('/api/scalability/auto-scaler/stats', async (request, reply) => {
+  try {
+    const stats = autoScaler.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/scalability/auto-scaler/stats' })
+    return reply.status(500).send({ error: 'Failed to get auto-scaler stats' })
+  }
+})
+
+server.post('/api/scalability/auto-scaler/evaluate', async (request, reply) => {
+  try {
+    const decision = await autoScaler.evaluate()
+    return {
+      success: true,
+      decision
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/scalability/auto-scaler/evaluate' })
+    return reply.status(500).send({ error: 'Failed to evaluate auto-scaling' })
+  }
+})
+
+// Webhooks API
+server.post('/api/webhooks', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const events = body?.events || []
+    const secret = body?.secret
+    const retries = body?.retries || 3
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    if (events.length === 0) {
+      return reply.status(400).send({ error: 'events required' })
+    }
+
+    const result = await webhookSystem.register(url, events, { secret, retries })
+    return {
+      success: result.success,
+      webhook: result.webhook
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/webhooks' })
+    return reply.status(500).send({ error: 'Failed to register webhook' })
+  }
+})
+
+server.get('/api/webhooks', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const eventType = query?.eventType
+    const webhooks = webhookSystem.listWebhooks(eventType)
+    return {
+      success: true,
+      webhooks
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/webhooks' })
+    return reply.status(500).send({ error: 'Failed to list webhooks' })
+  }
+})
+
+server.get('/api/webhooks/:webhookId', async (request, reply) => {
+  try {
+    const webhookId = (request.params as any).webhookId
+    const webhook = webhookSystem.getWebhook(webhookId)
+
+    if (!webhook) {
+      return reply.status(404).send({ error: 'Webhook not found' })
+    }
+
+    return {
+      success: true,
+      webhook
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/webhooks/:webhookId' })
+    return reply.status(500).send({ error: 'Failed to get webhook' })
+  }
+})
+
+server.delete('/api/webhooks/:webhookId', async (request, reply) => {
+  try {
+    const webhookId = (request.params as any).webhookId
+    const result = await webhookSystem.unregister(webhookId)
+    return {
+      success: result.success
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'DELETE /api/webhooks/:webhookId' })
+    return reply.status(500).send({ error: 'Failed to unregister webhook' })
+  }
+})
+
+server.get('/api/webhooks/:webhookId/deliveries', async (request, reply) => {
+  try {
+    const webhookId = (request.params as any).webhookId
+    const query = request.query as any
+    const limit = Number(query?.limit || 100)
+    const deliveries = webhookSystem.getDeliveries(webhookId, limit)
+    return {
+      success: true,
+      deliveries,
+      count: deliveries.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/webhooks/:webhookId/deliveries' })
+    return reply.status(500).send({ error: 'Failed to get webhook deliveries' })
+  }
+})
+
+// API Gateway API
+server.get('/api/gateway/stats', async (request, reply) => {
+  try {
+    const stats = apiGateway.getStats()
+    return {
+      success: true,
+      stats
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/gateway/stats' })
+    return reply.status(500).send({ error: 'Failed to get gateway stats' })
+  }
+})
+
+// Advanced Authentication API
+import { advancedAuth } from './enterprise/advancedAuth'
+
+server.post('/api/auth/register', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const email = body?.email
+    const password = body?.password
+    const ip = request.ip || request.headers['x-forwarded-for'] || undefined
+    const userAgent = request.headers['user-agent'] || undefined
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'email and password required' })
+    }
+
+    const result = await advancedAuth.register(email, password, { ip, userAgent })
+    return {
+      success: result.success,
+      user: result.user
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/register' })
+    return reply.status(500).send({ error: 'Failed to register user' })
+  }
+})
+
+server.post('/api/auth/login', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const email = body?.email
+    const password = body?.password
+    const ip = request.ip || request.headers['x-forwarded-for'] || undefined
+    const userAgent = request.headers['user-agent'] || undefined
+
+    if (!email || !password) {
+      return reply.status(400).send({ error: 'email and password required' })
+    }
+
+    const result = await advancedAuth.login(email, password, { ip, userAgent })
+    return {
+      success: result.success,
+      session: result.session
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/login' })
+    return reply.status(500).send({ error: 'Failed to login' })
+  }
+})
+
+server.post('/api/auth/logout', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined
+
+    if (!token) {
+      return reply.status(400).send({ error: 'token required' })
+    }
+
+    const result = await advancedAuth.logout(token)
+    return {
+      success: result.success
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/auth/logout' })
+    return reply.status(500).send({ error: 'Failed to logout' })
+  }
+})
+
+server.get('/api/auth/session', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const session = advancedAuth.validateSession(token)
+    if (!session) {
+      return reply.status(401).send({ error: 'Invalid or expired session' })
+    }
+
+    return {
+      success: true,
+      session: {
+        userId: session.userId,
+        email: session.email,
+        expiresAt: session.expiresAt,
+        lastActivity: session.lastActivity
+      }
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/auth/session' })
+    return reply.status(500).send({ error: 'Failed to validate session' })
+  }
+})
+
+// Data Governance API
+import { dataGovernance } from './governance/dataGovernance'
+
+server.post('/api/governance/policies', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const name = body?.name
+    const description = body?.description
+    const rules = body?.rules || []
+
+    if (!name || !description) {
+      return reply.status(400).send({ error: 'name and description required' })
+    }
+
+    const result = await dataGovernance.createPolicy(name, description, rules)
+    return {
+      success: result.success,
+      policy: result.policy
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/policies' })
+    return reply.status(500).send({ error: 'Failed to create policy' })
+  }
+})
+
+server.post('/api/governance/classify', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const data = body?.data
+    const metadata = body?.metadata
+
+    if (!data) {
+      return reply.status(400).send({ error: 'data required' })
+    }
+
+    const classification = dataGovernance.classifyData(data, metadata)
+    return {
+      success: true,
+      classification
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/classify' })
+    return reply.status(500).send({ error: 'Failed to classify data' })
+  }
+})
+
+server.get('/api/governance/report', async (request, reply) => {
+  try {
+    const report = await dataGovernance.getGovernanceReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/report' })
+    return reply.status(500).send({ error: 'Failed to get governance report' })
+  }
+})
+
 // Stream chat endpoint
 server.post('/api/agents/chat/stream', async (request, reply) => {
   try {
@@ -1246,6 +1674,53 @@ const start = async () => {
       logInfo('✅ Self-evolving analysis and auto-improvement started')
     } catch (error) {
       logError(error as Error, { context: 'self-evolving setup' })
+    }
+
+    // Start Phase 3 - Enterprise-Grade System
+    try {
+      // Start security monitoring
+      setInterval(async () => {
+        try {
+          await securitySystem.scanVulnerabilities()
+        } catch (error) {
+          logError(error as Error, { context: 'security scanning' })
+        }
+      }, 3600000) // Every hour
+      logInfo('✅ Security monitoring started')
+
+      // Start performance monitoring
+      setInterval(async () => {
+        try {
+          const usage = process.memoryUsage()
+          updateMemoryUsage('heap', usage.heapUsed)
+          updateMemoryUsage('rss', usage.rss)
+          updateMemoryUsage('external', usage.external)
+
+          const cacheStats = advancedCache.getStats()
+          updateCacheHitRate(cacheStats.hitRate)
+        } catch (error) {
+          logError(error as Error, { context: 'performance monitoring' })
+        }
+      }, 30000) // Every 30 seconds
+      logInfo('✅ Performance monitoring started')
+
+      // Start auto-scaling monitoring
+      try {
+        autoScaler.startMonitoring(60000) // Every minute
+        logInfo('✅ Auto-scaling monitoring started')
+      } catch (error) {
+        logError(error as Error, { context: 'auto-scaling setup' })
+      }
+
+      // Start load balancer health checks
+      try {
+        loadBalancer.startHealthChecks()
+        logInfo('✅ Load balancer health checks started')
+      } catch (error) {
+        logError(error as Error, { context: 'load balancer setup' })
+      }
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 3 setup' })
     }
 
     // Periodic system evolution

@@ -8,4 +8,5 @@ export * from './errorHandler'
 export * from './requestLogger'
 export * from './auth'
 export * from './authorize'
+export * from './security'
 

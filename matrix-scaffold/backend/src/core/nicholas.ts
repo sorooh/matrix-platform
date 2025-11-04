@@ -44,6 +44,7 @@ export const Nicholas = {
   },
 
   async scheduleJob(projectId: string, spec: JobSpec): Promise<Job> {
+    const startTime = Date.now()
     try {
       const now = new Date().toISOString()
       const j: Job = {

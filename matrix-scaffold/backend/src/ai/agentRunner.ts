@@ -73,6 +73,14 @@ export class AgentRunner {
         logger.warn('Failed to store agent execution in memory:', error)
       }
 
+      // Record agent execution metrics
+      try {
+        const { recordAgentExecution } = await import('../monitoring/prometheus')
+        recordAgentExecution(this.agent.type, 'success', duration)
+      } catch (error) {
+        logger.warn('Failed to record agent metrics:', error)
+      }
+
       // Publish event
       eventBus.publish('agent.executed', {
         agentType: this.agent.type,

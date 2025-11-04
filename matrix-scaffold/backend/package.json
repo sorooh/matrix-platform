@@ -28,7 +28,8 @@
     "jsonwebtoken": "^9.0.2",
     "openai": "^4.20.0",
     "@octokit/rest": "^20.0.0",
-    "@anthropic-ai/sdk": "^0.17.0"
+    "@anthropic-ai/sdk": "^0.17.0",
+    "prom-client": "^15.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
