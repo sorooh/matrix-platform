@@ -65,6 +65,18 @@
     "performance": "Métricas de rendimiento",
     "security": "Eventos de seguridad",
     "trends": "Tendencias"
+  },
+  "settings": {
+    "title": "Configuración",
+    "description": "Configure su Matrix Platform",
+    "subtitle": "Configuración de la plataforma",
+    "theme": {
+      "title": "Personalización del tema",
+      "mode": "Modo del tema",
+      "preset": "Tema predefinido",
+      "customColors": "Colores personalizados",
+      "reset": "Restablecer por defecto"
+    }
   }
 }
 

@@ -30,7 +30,7 @@ export default function Sidebar() {
       animate={{ x: 0 }}
       className="w-64 bg-matrix-gray border-r border-gray-800 flex flex-col"
     >
-      <div className="p-6 border-b border-gray-800">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center gap-2">
           <Zap className="w-6 h-6 text-matrix-green" />
           <h1 className="text-xl font-bold matrix-glow">Matrix</h1>
@@ -61,7 +61,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-border">
         <div className="text-xs text-gray-400">
           <p>Version 0.1.0</p>
           <p className="mt-1">© 2025 Surooh</p>

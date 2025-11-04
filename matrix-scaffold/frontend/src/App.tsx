@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
@@ -16,16 +17,18 @@ function App() {
   document.documentElement.lang = i18n.language
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/agents" element={<Agents />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
-    </Layout>
+    <ThemeProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/agents" element={<Agents />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Layout>
+    </ThemeProvider>
   )
 }
 

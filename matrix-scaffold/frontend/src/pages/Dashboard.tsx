@@ -30,7 +30,7 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-3xl font-bold matrix-glow">{t('dashboard.title')}</h1>
-        <p className="text-gray-400 mt-2">{t('dashboard.overview')}</p>
+        <p className="text-text-secondary mt-2">{t('dashboard.overview')}</p>
       </motion.div>
 
       <RealTimeStats />
@@ -46,12 +46,12 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-400">Cache Hit Rate</span>
+                <span className="text-text-secondary">Cache Hit Rate</span>
                 <span className="text-matrix-green">
                   {(dashboard?.performance?.cache?.hitRate * 100 || 0).toFixed(1)}%
                 </span>
               </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
+              <div className="w-full bg-surface rounded-full h-2">
                 <div
                   className="bg-matrix-green h-2 rounded-full transition-all"
                   style={{
@@ -67,20 +67,20 @@ export default function Dashboard() {
           <h2 className="text-xl font-semibold mb-4">{t('dashboard.system')}</h2>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-400">Uptime</span>
-              <span className="text-white">
+              <span className="text-text-secondary">Uptime</span>
+              <span className="text-text">
                 {dashboard?.overview?.system?.uptime
                   ? `${Math.floor(dashboard.overview.system.uptime / 3600)}h`
                   : '0h'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Version</span>
-              <span className="text-white">{dashboard?.overview?.system?.version || '0.1.0'}</span>
+              <span className="text-text-secondary">Version</span>
+              <span className="text-text">{dashboard?.overview?.system?.version || '0.1.0'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Instances</span>
-              <span className="text-white">
+              <span className="text-text-secondary">Instances</span>
+              <span className="text-text">
                 {dashboard?.scalability?.instances || 1}
               </span>
             </div>

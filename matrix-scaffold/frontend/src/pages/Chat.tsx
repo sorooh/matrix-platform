@@ -3,11 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import ChatStream from '../components/ChatStream'
 
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
-import ChatStream from '../components/ChatStream'
-
 const agents = [
   { id: 'morpheus', name: 'Morpheus', description: 'Analysis & Strategy' },
   { id: 'architect', name: 'Architect', description: 'Architecture & Design' },
@@ -28,7 +23,7 @@ export default function Chat() {
         className="mb-6"
       >
         <h1 className="text-3xl font-bold matrix-glow">{t('chat.title')}</h1>
-        <p className="text-gray-400 mt-2">{t('chat.agents')}</p>
+        <p className="text-text-secondary mt-2">{t('chat.agents')}</p>
       </motion.div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto">
@@ -41,7 +36,7 @@ export default function Chat() {
               ${
                 selectedAgent === agent.id
                   ? 'bg-primary-600 text-white'
-                  : 'bg-matrix-gray text-gray-300 hover:bg-gray-800'
+                  : 'bg-surface text-text-secondary hover:bg-surface/80'
               }
             `}
           >

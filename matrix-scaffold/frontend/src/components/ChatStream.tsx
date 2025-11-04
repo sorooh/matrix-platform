@@ -122,7 +122,7 @@ export default function ChatStream({ agent, onMessage }: ChatStreamProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 bg-matrix-gray rounded-lg border border-gray-800 p-6 overflow-y-auto mb-4">
+      <div className="flex-1 bg-surface rounded-lg border border-border p-6 overflow-y-auto mb-4">
         <AnimatePresence>
           {messages.map((message) => (
             <motion.div
@@ -144,8 +144,8 @@ export default function ChatStream({ agent, onMessage }: ChatStreamProps) {
                   max-w-[70%] rounded-lg p-4
                   ${
                     message.role === 'user'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-800 text-gray-100'
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-surface/50 text-text'
                   }
                 `}
               >
@@ -155,7 +155,7 @@ export default function ChatStream({ agent, onMessage }: ChatStreamProps) {
                 </p>
               </div>
               {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5" />
                 </div>
               )}
@@ -167,7 +167,7 @@ export default function ChatStream({ agent, onMessage }: ChatStreamProps) {
             <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
               <Bot className="w-5 h-5" />
             </div>
-            <div className="bg-gray-800 rounded-lg p-4 max-w-[70%]">
+            <div className="bg-surface/50 rounded-lg p-4 max-w-[70%]">
               <p className="whitespace-pre-wrap">{streamingContent}</p>
               <span className="inline-block w-2 h-4 bg-matrix-green animate-pulse ml-1" />
             </div>
@@ -183,12 +183,12 @@ export default function ChatStream({ agent, onMessage }: ChatStreamProps) {
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleStreamChat()}
           placeholder={t('chat.placeholder')}
-          className="flex-1 bg-matrix-gray border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500"
+          className="flex-1 bg-surface border border-border rounded-lg px-4 py-3 text-text focus:outline-none focus:border-primary-500"
         />
         <button
           onClick={handleStreamChat}
           disabled={!input.trim() || isLoading}
-          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
         >
           <Send className="w-5 h-5" />
           {t('chat.send')}
