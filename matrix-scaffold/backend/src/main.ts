@@ -2875,6 +2875,15 @@ const start = async () => {
       logInfo('⚠️ AI agents not available, continuing without them')
     }
 
+    // Phase 5: Initialize Surooh Neural Engine
+    try {
+      await nicholasCoreIntegration.initialize()
+      logInfo('✅ Surooh Neural Engine initialized and integrated with Nicholas Core')
+    } catch (error) {
+      logError(error as Error, { context: 'Neural engine initialization' })
+      logInfo('⚠️ Neural engine not available, continuing with fallback')
+    }
+
     // Start Bots workers
     registerBots()
     logInfo('✅ Bots registered')
