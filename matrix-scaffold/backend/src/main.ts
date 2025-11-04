@@ -384,25 +384,49 @@ server.get('/api/suig/kpis', async (request, reply) => {
 })
 
 // Self-Evolving System API
-server.get('/api/evolution/insights', async (request, reply) => {
+import { selfEvolvingSystem } from './core/selfEvolving'
+
+server.get('/api/self-evolving/insights', async (request, reply) => {
   try {
-    const { analyzeSystemEvolution } = await import('./core/selfEvolving')
-    const insights = await analyzeSystemEvolution()
-    return insights
-  } catch (e: any) {
-    logError(e as Error, { context: 'GET /api/evolution/insights' })
-    return reply.status(500).send({ error: String(e) })
+    const insights = selfEvolvingSystem.getInsights()
+    const lastAnalysis = selfEvolvingSystem.getLastAnalysis()
+
+    return {
+      insights,
+      lastAnalysis: lastAnalysis?.toISOString() || null,
+      count: insights.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/self-evolving/insights' })
+    return reply.status(500).send({ error: 'Failed to get insights' })
   }
 })
 
-server.post('/api/evolution/evolve', async (request, reply) => {
+server.post('/api/self-evolving/analyze', async (request, reply) => {
   try {
-    const { evolveSystem } = await import('./core/selfEvolving')
-    await evolveSystem()
-    return { success: true, message: 'System evolution completed' }
-  } catch (e: any) {
-    logError(e as Error, { context: 'POST /api/evolution/evolve' })
-    return reply.status(500).send({ error: String(e) })
+    const insights = await selfEvolvingSystem.analyze()
+    return {
+      success: true,
+      insights,
+      count: insights.length
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/self-evolving/analyze' })
+    return reply.status(500).send({ error: 'Failed to analyze' })
+  }
+})
+
+server.post('/api/self-evolving/improve', async (request, reply) => {
+  try {
+    const { autoImprovement } = await import('./core/selfEvolving')
+    const result = await autoImprovement.improve()
+    return {
+      success: true,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/self-evolving/improve' })
+    return reply.status(500).send({ error: 'Failed to improve' })
   }
 })
 

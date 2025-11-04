@@ -7,3 +7,5 @@
 export * from './rbac'
 export * from './auth'
 export * from './encryption'
+export * from './audit'
+export * from './compliance'
