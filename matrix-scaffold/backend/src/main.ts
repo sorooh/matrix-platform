@@ -1547,6 +1547,8 @@ import { workflowEngine } from './automation/workflow'
 
 // Phase 4: Smart User Accounts
 import { smartUserAccounts } from './users/accounts'
+import { personalAIMemory } from './users/personalMemory'
+import { referralSystem } from './users/referral'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -2288,6 +2290,292 @@ server.post('/api/auth/2fa/disable', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/auth/2fa/disable' })
     return reply.status(500).send({ error: 'Failed to disable 2FA' })
+  }
+})
+
+// Phase 4: Personal AI Memory API
+server.post('/api/users/memory', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const body = request.body as any
+    const text = body?.text
+    const metadata = body?.metadata
+
+    if (!text) {
+      return reply.status(400).send({ error: 'text required' })
+    }
+
+    const result = await personalAIMemory.addMemory(verification.userId, text, metadata)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true, memory: result.memory }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/users/memory' })
+    return reply.status(500).send({ error: 'Failed to add memory' })
+  }
+})
+
+server.get('/api/users/memory/search', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const q = query?.q || ''
+    const topK = parseInt(query?.topK || '5', 10)
+
+    const results = await personalAIMemory.searchMemory(verification.userId, q, topK)
+
+    return { success: true, results }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/memory/search' })
+    return reply.status(500).send({ error: 'Failed to search memory' })
+  }
+})
+
+server.post('/api/users/memory/learn', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const body = request.body as any
+    const type = body?.type
+    const content = body?.content
+    const metadata = body?.metadata
+
+    if (!type || !content) {
+      return reply.status(400).send({ error: 'type and content required' })
+    }
+
+    const result = await personalAIMemory.learnFromInteraction(verification.userId, {
+      type: type as any,
+      content,
+      metadata,
+    })
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/users/memory/learn' })
+    return reply.status(500).send({ error: 'Failed to learn from interaction' })
+  }
+})
+
+server.get('/api/users/memory/suggestions', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const context = query?.context
+
+    const result = await personalAIMemory.generateSuggestions(verification.userId, context)
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error })
+    }
+
+    return { success: true, suggestions: result.suggestions }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/memory/suggestions' })
+    return reply.status(500).send({ error: 'Failed to generate suggestions' })
+  }
+})
+
+server.get('/api/users/memory/stats', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const stats = await personalAIMemory.getMemoryStats(verification.userId)
+
+    return { success: true, stats }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/memory/stats' })
+    return reply.status(500).send({ error: 'Failed to get memory stats' })
+  }
+})
+
+server.get('/api/users/memory/timeline', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '50', 10)
+
+    const timeline = await personalAIMemory.getMemoryTimeline(verification.userId, limit)
+
+    return { success: true, timeline }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/memory/timeline' })
+    return reply.status(500).send({ error: 'Failed to get memory timeline' })
+  }
+})
+
+// Phase 4: Referral & Reward System API
+server.get('/api/users/referral/token', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const referralToken = await referralSystem.getUserReferralToken(verification.userId)
+
+    if (!referralToken) {
+      return reply.status(500).send({ error: 'Failed to generate referral token' })
+    }
+
+    return { success: true, token: referralToken }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/referral/token' })
+    return reply.status(500).send({ error: 'Failed to get referral token' })
+  }
+})
+
+server.get('/api/users/referral/stats', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const stats = await referralSystem.getReferralStats(verification.userId)
+
+    return { success: true, stats }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/referral/stats' })
+    return reply.status(500).send({ error: 'Failed to get referral stats' })
+  }
+})
+
+server.get('/api/users/referral/list', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const query = request.query as any
+    const limit = parseInt(query?.limit || '50', 10)
+
+    const referrals = await referralSystem.getReferrals(verification.userId, limit)
+
+    return { success: true, referrals }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/referral/list' })
+    return reply.status(500).send({ error: 'Failed to get referrals' })
+  }
+})
+
+server.get('/api/users/points', async (request, reply) => {
+  try {
+    const authHeader = request.headers.authorization
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    if (!token) {
+      return reply.status(401).send({ error: 'token required' })
+    }
+
+    const verification = smartUserAccounts.verifyToken(token)
+    if (!verification.valid || !verification.userId) {
+      return reply.status(401).send({ error: 'invalid token' })
+    }
+
+    const points = await referralSystem.getUserPoints(verification.userId)
+
+    if (!points) {
+      return reply.status(404).send({ error: 'User points not found' })
+    }
+
+    return { success: true, points }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/users/points' })
+    return reply.status(500).send({ error: 'Failed to get user points' })
   }
 })
 
