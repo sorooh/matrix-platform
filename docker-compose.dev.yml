@@ -1,0 +1,246 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: matrix-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: matrix_admin_pass
+      MONGO_INITDB_DATABASE: matrix_platform
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongodb/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - matrix-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: matrix-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass matrix_redis_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/etc/redis/redis.conf
+    networks:
+      - matrix-network
+    healthcheck:
+      test: redis-cli --raw incr ping
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database (for financial data)
+  postgresql:
+    image: postgres:15-alpine
+    container_name: matrix-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: matrix_platform
+      POSTGRES_USER: matrix_user
+      POSTGRES_PASSWORD: matrix_postgres_pass
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./docker/postgresql/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - matrix-network
+    healthcheck:
+      test: pg_isready -U matrix_user -d matrix_platform
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: matrix-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: matrix_minio_user
+      MINIO_ROOT_PASSWORD: matrix_minio_pass
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - matrix-network
+    healthcheck:
+      test: curl -f http://localhost:9000/minio/health/live || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Elasticsearch (for advanced search and analytics)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: matrix-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - matrix-network
+    healthcheck:
+      test: curl -f http://localhost:9200/_cluster/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Grafana (monitoring and analytics dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: matrix-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: matrix_grafana_pass
+      GF_USERS_ALLOW_SIGN_UP: false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - matrix-network
+    depends_on:
+      - postgresql
+      - mongodb
+
+  # Prometheus (metrics collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: matrix-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - matrix-network
+
+  # Nginx (reverse proxy and load balancer)
+  nginx:
+    image: nginx:alpine
+    container_name: matrix-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    networks:
+      - matrix-network
+    depends_on:
+      - backend
+      - frontend
+
+  # Matrix Platform Backend
+  backend:
+    build:
+      context: ./matrix-scaffold/backend
+      dockerfile: Dockerfile
+    container_name: matrix-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      MONGODB_URI: mongodb://admin:matrix_admin_pass@mongodb:27017/matrix_platform?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PASSWORD: matrix_redis_pass
+      POSTGRES_HOST: postgresql
+      POSTGRES_USER: matrix_user
+      POSTGRES_PASSWORD: matrix_postgres_pass
+      POSTGRES_DB: matrix_platform
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+      MINIO_ENDPOINT: minio
+      MINIO_ACCESS_KEY: matrix_minio_user
+      MINIO_SECRET_KEY: matrix_minio_pass
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./matrix-scaffold/backend:/app
+      - /app/node_modules
+    networks:
+      - matrix-network
+    depends_on:
+      - mongodb
+      - redis
+      - postgresql
+      - minio
+
+  # Matrix Platform Frontend
+  frontend:
+    build:
+      context: ./matrix-scaffold/frontend
+      dockerfile: Dockerfile
+    container_name: matrix-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_NODE_ENV: development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./matrix-scaffold/frontend:/app
+      - /app/node_modules
+    networks:
+      - matrix-network
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgresql_data:
+    driver: local
+  minio_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  matrix-network:
+    driver: bridge
