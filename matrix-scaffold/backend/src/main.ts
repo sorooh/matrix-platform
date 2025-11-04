@@ -577,8 +577,8 @@ server.get('/health', async () => {
   }
 })
 
-// Simple metrics endpoint (JSON). Not Prometheus format yet — small and safe.
-server.get('/metrics', async (request, reply) => {
+// Simple metrics endpoint (JSON) - deprecated, use /metrics for Prometheus
+server.get('/metrics-json', async (request, reply) => {
   try {
     const metaDir = join(__dirname, '..', '..', 'storage', 'meta')
     let snapshotsCount = 0
@@ -1353,6 +1353,181 @@ server.get('/api/gateway/stats', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/gateway/stats' })
     return reply.status(500).send({ error: 'Failed to get gateway stats' })
+  }
+})
+
+// Data Governance API
+import { dataGovernance } from './enterprise/governance'
+import { enterpriseReporting } from './enterprise/reporting'
+
+server.post('/api/governance/policies', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const name = body?.name
+    const description = body?.description || ''
+    const rules = body?.rules || []
+
+    if (!name) {
+      return reply.status(400).send({ error: 'name required' })
+    }
+
+    if (rules.length === 0) {
+      return reply.status(400).send({ error: 'rules required' })
+    }
+
+    const result = await dataGovernance.createPolicy(name, description, rules)
+    return {
+      success: result.success,
+      policy: result.policy
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/policies' })
+    return reply.status(500).send({ error: 'Failed to create policy' })
+  }
+})
+
+server.get('/api/governance/policies', async (request, reply) => {
+  try {
+    const policies = dataGovernance.listPolicies()
+    return {
+      success: true,
+      policies
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/policies' })
+    return reply.status(500).send({ error: 'Failed to list policies' })
+  }
+})
+
+server.get('/api/governance/policies/:policyId', async (request, reply) => {
+  try {
+    const policyId = (request.params as any).policyId
+    const policy = dataGovernance.getPolicy(policyId)
+
+    if (!policy) {
+      return reply.status(404).send({ error: 'Policy not found' })
+    }
+
+    return {
+      success: true,
+      policy
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/policies/:policyId' })
+    return reply.status(500).send({ error: 'Failed to get policy' })
+  }
+})
+
+server.put('/api/governance/policies/:policyId/toggle', async (request, reply) => {
+  try {
+    const policyId = (request.params as any).policyId
+    const body = request.body as any
+    const enabled = body?.enabled !== false
+
+    const result = await dataGovernance.togglePolicy(policyId, enabled)
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/governance/policies/:policyId/toggle' })
+    return reply.status(500).send({ error: 'Failed to toggle policy' })
+  }
+})
+
+server.post('/api/governance/enforce/retention', async (request, reply) => {
+  try {
+    const result = await dataGovernance.enforceRetentionPolicy()
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/enforce/retention' })
+    return reply.status(500).send({ error: 'Failed to enforce retention policy' })
+  }
+})
+
+server.post('/api/governance/enforce/encryption', async (request, reply) => {
+  try {
+    const result = await dataGovernance.enforceEncryptionPolicy()
+    return {
+      success: result.success,
+      result
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/governance/enforce/encryption' })
+    return reply.status(500).send({ error: 'Failed to enforce encryption policy' })
+  }
+})
+
+server.get('/api/governance/report', async (request, reply) => {
+  try {
+    const report = await dataGovernance.generateReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/governance/report' })
+    return reply.status(500).send({ error: 'Failed to generate governance report' })
+  }
+})
+
+// Enterprise Reporting API
+server.get('/api/reporting/enterprise', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const startDate = query?.startDate ? new Date(query.startDate) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+    const endDate = query?.endDate ? new Date(query.endDate) : new Date()
+
+    const report = await enterpriseReporting.generateReport(startDate, endDate)
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/reporting/enterprise' })
+    return reply.status(500).send({ error: 'Failed to generate enterprise report' })
+  }
+})
+
+server.get('/api/reporting/compliance', async (request, reply) => {
+  try {
+    const report = await enterpriseReporting.generateComplianceReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/reporting/compliance' })
+    return reply.status(500).send({ error: 'Failed to generate compliance report' })
+  }
+})
+
+server.get('/api/reporting/security', async (request, reply) => {
+  try {
+    const report = await enterpriseReporting.generateSecurityReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/reporting/security' })
+    return reply.status(500).send({ error: 'Failed to generate security report' })
+  }
+})
+
+server.get('/api/reporting/performance', async (request, reply) => {
+  try {
+    const report = await enterpriseReporting.generatePerformanceReport()
+    return {
+      success: true,
+      report
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/reporting/performance' })
+    return reply.status(500).send({ error: 'Failed to generate performance report' })
   }
 })
 
