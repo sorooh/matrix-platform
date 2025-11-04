@@ -1581,6 +1581,10 @@ import { governanceLayer } from './crawler/governance'
 import { distributedCrawler } from './crawler/distributed'
 import { videoRecordingSystem } from './crawler/videoRecording'
 
+// Phase 7: Autonomous Deployment & Global Orchestration
+import { autonomousDeploymentEngine } from './deployment/engine'
+import { domainSSLManager } from './deployment/domainSSL'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -4352,6 +4356,197 @@ server.get('/api/crawler/video/status', async (request, reply) => {
   }
 })
 
+// Phase 7: Autonomous Deployment API
+server.post('/api/deployment/deploy', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const result = await autonomousDeploymentEngine.deploy(config)
+
+    return {
+      success: result.success,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/deploy' })
+    return reply.status(500).send({ error: 'Failed to deploy' })
+  }
+})
+
+server.get('/api/deployment/:deploymentId', async (request, reply) => {
+  try {
+    const deploymentId = (request.params as any).deploymentId
+
+    const deployment = autonomousDeploymentEngine.getDeployment(deploymentId)
+
+    if (!deployment) {
+      return reply.status(404).send({ error: 'Deployment not found' })
+    }
+
+    return {
+      success: true,
+      deployment,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/deployment/:deploymentId' })
+    return reply.status(500).send({ error: 'Failed to get deployment' })
+  }
+})
+
+server.get('/api/deployment', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const status = query?.status
+
+    let deployments
+    if (status) {
+      deployments = autonomousDeploymentEngine.getDeploymentsByStatus(status)
+    } else {
+      deployments = autonomousDeploymentEngine.getAllDeployments()
+    }
+
+    return {
+      success: true,
+      deployments,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/deployment' })
+    return reply.status(500).send({ error: 'Failed to get deployments' })
+  }
+})
+
+server.post('/api/deployment/generate-iac', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const files = await autonomousDeploymentEngine.generateIaCFiles(config)
+
+    return {
+      success: true,
+      files,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/generate-iac' })
+    return reply.status(500).send({ error: 'Failed to generate IaC files' })
+  }
+})
+
+// Phase 7: Domain & SSL Manager API
+server.post('/api/domain/register', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const domain = await domainSSLManager.registerDomain(config)
+
+    return {
+      success: true,
+      domain,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/domain/register' })
+    return reply.status(500).send({ error: 'Failed to register domain' })
+  }
+})
+
+server.post('/api/domain/:domain/ssl', async (request, reply) => {
+  try {
+    const domain = (request.params as any).domain
+    const body = request.body as any
+    const options = body?.options
+
+    const certificate = await domainSSLManager.setupSSL(domain, options)
+
+    return {
+      success: true,
+      certificate,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/domain/:domain/ssl' })
+    return reply.status(500).send({ error: 'Failed to setup SSL' })
+  }
+})
+
+server.post('/api/domain/:domain/ssl/renew', async (request, reply) => {
+  try {
+    const domain = (request.params as any).domain
+
+    const certificate = await domainSSLManager.renewSSL(domain)
+
+    return {
+      success: true,
+      certificate,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/domain/:domain/ssl/renew' })
+    return reply.status(500).send({ error: 'Failed to renew SSL' })
+  }
+})
+
+server.get('/api/domain/:domain', async (request, reply) => {
+  try {
+    const domain = (request.params as any).domain
+
+    const status = domainSSLManager.getDomainStatus(domain)
+
+    if (!status) {
+      return reply.status(404).send({ error: 'Domain not found' })
+    }
+
+    return {
+      success: true,
+      status,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/domain/:domain' })
+    return reply.status(500).send({ error: 'Failed to get domain status' })
+  }
+})
+
+server.get('/api/domain', async (request, reply) => {
+  try {
+    const domains = domainSSLManager.getAllDomains()
+
+    return {
+      success: true,
+      domains,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/domain' })
+    return reply.status(500).send({ error: 'Failed to get domains' })
+  }
+})
+
+server.post('/api/domain/:domain/monitor', async (request, reply) => {
+  try {
+    const domain = (request.params as any).domain
+
+    const status = await domainSSLManager.monitorDomain(domain)
+
+    return {
+      success: true,
+      status,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/domain/:domain/monitor' })
+    return reply.status(500).send({ error: 'Failed to monitor domain' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -4537,6 +4732,20 @@ const start = async () => {
         logError(error as Error, { context: 'system evolution' })
       }
     }, 300000) // Every 5 minutes
+
+    // Phase 7: Initialize Autonomous Deployment & Global Orchestration
+    try {
+      // Initialize autonomous deployment engine
+      await autonomousDeploymentEngine.initialize()
+      logInfo('✅ Autonomous Deployment Engine initialized')
+
+      // Initialize domain & SSL manager
+      await domainSSLManager.initialize()
+      logInfo('✅ Domain & SSL Manager initialized')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 7 initialization' })
+      logInfo('⚠️ Phase 7 not available, continuing without it')
+    }
 
     logInfo('✅ Matrix Platform started successfully')
   } catch (err) {
