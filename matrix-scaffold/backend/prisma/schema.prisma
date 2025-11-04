@@ -161,3 +161,224 @@ model KpiSnapshot {
   @@map("kpi_snapshots")
 }
 
+// Phase 4: Smart User Accounts
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  name              String?
+  avatar            String?
+  password          String?   // Hashed password
+  role              String   @default("user") // user | admin | enterprise
+  emailVerified     Boolean  @default(false)
+  verificationToken String?
+  verificationExpires DateTime?
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorSecret   String?
+  oauthProvider     String?  // google | github | microsoft
+  oauthId           String?
+  preferences       Json?    // Theme, language, notifications
+  metadata          Json?
+  lastLoginAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  sessions          UserSession[]
+  activities        UserActivity[]
+  projects          Project[]
+  memories          UserMemory[]
+  referrals         Referral[] @relation("Referrer")
+  referredBy        Referral? @relation("ReferredUser")
+  points            UserPoints?
+  subscriptions     Subscription[]
+  billingHistory    BillingHistory[]
+  notifications     Notification[]
+  companionAgent    CompanionAgent?
+
+  @@index([email])
+  @@index([role])
+  @@index([emailVerified])
+  @@index([oauthProvider, oauthId])
+  @@map("users")
+}
+
+model UserSession {
+  id            String   @id @default(uuid())
+  userId        String
+  token         String   // Hashed token
+  ip            String?
+  userAgent     String?
+  expiresAt     DateTime
+  lastActivityAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model UserActivity {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // login | logout | action | api_call | error
+  description String
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([timestamp])
+  @@map("user_activities")
+}
+
+// Phase 4: Personal AI Memory
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String
+  text      String   @db.Text
+  vector    Unsupported("vector(256)")? // pgvector - 256 dimensions
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("user_memories")
+}
+
+// Phase 4: Referral & Reward System
+model Referral {
+  id            String   @id @default(uuid())
+  referrerId    String   // User who referred
+  referredUserId String? // User who was referred
+  token         String   @unique // Unique referral token
+  status        String   @default("pending") // pending | completed | rewarded
+  pointsEarned  Int      @default(0)
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  // Relations
+  referrer      User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredUser User?    @relation("ReferredUser", fields: [referredUserId], references: [id])
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([token])
+  @@index([status])
+  @@map("referrals")
+}
+
+model UserPoints {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  totalPoints   Int      @default(0)
+  aiCredits     Int      @default(0)
+  tier          String   @default("bronze") // bronze | silver | gold | diamond
+  referralsCount Int     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tier])
+  @@map("user_points")
+}
+
+// Phase 4: Billing & Subscriptions
+model Subscription {
+  id            String   @id @default(uuid())
+  userId        String
+  plan          String   // free | pro | enterprise
+  status        String   @default("active") // active | cancelled | expired
+  stripeId      String?
+  paypalId      String?
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([plan])
+  @@map("subscriptions")
+}
+
+model BillingHistory {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // subscription | purchase | refund
+  amount        Float
+  currency      String   @default("USD")
+  status        String   // pending | completed | failed
+  paymentMethod String?  // stripe | paypal | crypto
+  transactionId String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("billing_history")
+}
+
+// Phase 4: Advanced Notifications
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // info | warning | error | success | system
+  title       String
+  message     String   @db.Text
+  read        Boolean  @default(false)
+  actionUrl   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Phase 4: Personal Companion AI
+model CompanionAgent {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  name          String   @default("My Companion")
+  personality   Json?    // AI personality traits
+  memory        Json?    // Learned preferences
+  stats         Json?    // Usage statistics
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([enabled])
+  @@map("companion_agents")
+}
+
