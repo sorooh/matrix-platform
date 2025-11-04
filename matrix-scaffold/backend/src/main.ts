@@ -1613,6 +1613,8 @@ import { advancedSelfCheckSystem } from './selfcontained/advancedSelfCheck'
 // Phase 7.3: Admin Dashboard & Integration Control
 import { adminDashboard } from './admin/dashboard'
 import { keysAndIntegrationsManager } from './admin/keysManager'
+import { integrationControlLayer } from './admin/integrationControl'
+import { performanceAndAnalyticsBoard } from './admin/performanceBoard'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -5975,7 +5977,15 @@ const start = async () => {
       await keysAndIntegrationsManager.initialize()
       logInfo('✅ Keys & Integrations Manager initialized')
 
-      logInfo('✅ Phase 7.3 Admin Dashboard & Integration Control initialized')
+      // Initialize Integration Control Layer
+      await integrationControlLayer.initialize()
+      logInfo('✅ Integration Control Layer initialized')
+
+      // Initialize Performance & Analytics Board
+      await performanceAndAnalyticsBoard.initialize()
+      logInfo('✅ Performance & Analytics Board initialized')
+
+      logInfo('✅ Phase 7.3 Admin Dashboard & Integration Control initialized (67%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7.3 initialization' })
       logInfo('⚠️ Phase 7.3 not available, continuing without it')
