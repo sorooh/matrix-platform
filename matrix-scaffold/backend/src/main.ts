@@ -1571,6 +1571,11 @@ import { endToEndTestingSystem } from './neural/testing'
 import { performanceValidationSystem } from './neural/validation'
 import { finalIntegrationSystem } from './neural/final'
 
+// Phase 6: AI Crawler & Simulation Environment
+import { crawlerEngine } from './crawler/engine'
+import { browserSimulation } from './crawler/browserSimulation'
+import { environmentSandbox } from './crawler/sandbox'
+
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
   try {
@@ -3572,6 +3577,312 @@ server.get('/api/neural/final/report', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/neural/final/report' })
     return reply.status(500).send({ error: 'Failed to generate final report' })
+  }
+})
+
+// Phase 6: Crawler API
+server.post('/api/crawler/crawl', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const options = body?.options
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const result = await crawlerEngine.crawlUrl(url, options)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/crawler/crawl' })
+    return reply.status(500).send({ error: 'Failed to crawl URL' })
+  }
+})
+
+server.post('/api/crawler/crawl-multi', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const startUrl = body?.startUrl
+    const options = body?.options
+
+    if (!startUrl) {
+      return reply.status(400).send({ error: 'startUrl required' })
+    }
+
+    const results = await crawlerEngine.crawlUrls(startUrl, options)
+
+    return {
+      success: true,
+      results,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/crawler/crawl-multi' })
+    return reply.status(500).send({ error: 'Failed to crawl URLs' })
+  }
+})
+
+server.get('/api/crawler/stats', async (request, reply) => {
+  try {
+    const stats = crawlerEngine.getStats()
+
+    return {
+      success: true,
+      stats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/crawler/stats' })
+    return reply.status(500).send({ error: 'Failed to get crawler stats' })
+  }
+})
+
+server.get('/api/crawler/config', async (request, reply) => {
+  try {
+    const stats = crawlerEngine.getStats()
+
+    return {
+      success: true,
+      config: stats.config,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/crawler/config' })
+    return reply.status(500).send({ error: 'Failed to get crawler config' })
+  }
+})
+
+server.put('/api/crawler/config', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    crawlerEngine.updateConfig(config)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'PUT /api/crawler/config' })
+    return reply.status(500).send({ error: 'Failed to update crawler config' })
+  }
+})
+
+// Phase 6: Browser Simulation API
+server.post('/api/browser/session', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const url = body?.url
+    const options = body?.options
+
+    if (!url) {
+      return reply.status(400).send({ error: 'url required' })
+    }
+
+    const sessionId = await browserSimulation.createSession(url, options)
+
+    return {
+      success: true,
+      sessionId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session' })
+    return reply.status(500).send({ error: 'Failed to create browser session' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/screenshot', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+    const body = request.body as any
+    const options = body?.options
+
+    const screenshotPath = await browserSimulation.takeScreenshot(sessionId, options)
+
+    return {
+      success: true,
+      screenshotPath,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/screenshot' })
+    return reply.status(500).send({ error: 'Failed to take screenshot' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/video/start', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+    const body = request.body as any
+    const options = body?.options
+
+    const videoPath = await browserSimulation.startVideoRecording(sessionId, options)
+
+    return {
+      success: true,
+      videoPath,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/video/start' })
+    return reply.status(500).send({ error: 'Failed to start video recording' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/video/stop', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+
+    await browserSimulation.stopVideoRecording(sessionId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/video/stop' })
+    return reply.status(500).send({ error: 'Failed to stop video recording' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/dom-snapshot', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+    const body = request.body as any
+    const metadata = body?.metadata
+
+    const snapshotPath = await browserSimulation.captureDOMSnapshot(sessionId, metadata)
+
+    return {
+      success: true,
+      snapshotPath,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/dom-snapshot' })
+    return reply.status(500).send({ error: 'Failed to capture DOM snapshot' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/interaction', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+    const body = request.body as any
+    const action = body?.action
+    const selector = body?.selector
+    const options = body?.options
+
+    if (!action || !selector) {
+      return reply.status(400).send({ error: 'action and selector required' })
+    }
+
+    await browserSimulation.simulateInteraction(sessionId, action, selector, options)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/interaction' })
+    return reply.status(500).send({ error: 'Failed to simulate interaction' })
+  }
+})
+
+server.get('/api/browser/session/:sessionId', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+
+    const session = browserSimulation.getSession(sessionId)
+
+    if (!session) {
+      return reply.status(404).send({ error: 'Session not found' })
+    }
+
+    return {
+      success: true,
+      session,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/browser/session/:sessionId' })
+    return reply.status(500).send({ error: 'Failed to get session' })
+  }
+})
+
+server.post('/api/browser/session/:sessionId/end', async (request, reply) => {
+  try {
+    const sessionId = (request.params as any).sessionId
+
+    await browserSimulation.endSession(sessionId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/browser/session/:sessionId/end' })
+    return reply.status(500).send({ error: 'Failed to end session' })
+  }
+})
+
+// Phase 6: Environment Sandbox API
+server.post('/api/sandbox/task', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const command = body?.command
+    const args = body?.args || []
+    const options = body?.options
+
+    if (!command) {
+      return reply.status(400).send({ error: 'command required' })
+    }
+
+    const taskId = await environmentSandbox.executeTask(command, args, options)
+
+    return {
+      success: true,
+      taskId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/sandbox/task' })
+    return reply.status(500).send({ error: 'Failed to execute task' })
+  }
+})
+
+server.get('/api/sandbox/task/:taskId', async (request, reply) => {
+  try {
+    const taskId = (request.params as any).taskId
+
+    const task = environmentSandbox.getTask(taskId)
+
+    if (!task) {
+      return reply.status(404).send({ error: 'Task not found' })
+    }
+
+    return {
+      success: true,
+      task,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/sandbox/task/:taskId' })
+    return reply.status(500).send({ error: 'Failed to get task' })
+  }
+})
+
+server.post('/api/sandbox/task/:taskId/stop', async (request, reply) => {
+  try {
+    const taskId = (request.params as any).taskId
+
+    await environmentSandbox.stopTask(taskId)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/sandbox/task/:taskId/stop' })
+    return reply.status(500).send({ error: 'Failed to stop task' })
+  }
+})
+
+server.get('/api/sandbox/statistics', async (request, reply) => {
+  try {
+    const statistics = environmentSandbox.getStatistics()
+
+    return {
+      success: true,
+      statistics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/sandbox/statistics' })
+    return reply.status(500).send({ error: 'Failed to get sandbox statistics' })
   }
 })
 
