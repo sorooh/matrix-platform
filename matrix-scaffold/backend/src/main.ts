@@ -1588,6 +1588,10 @@ import { aiLoadBalancerOrchestrator } from './deployment/loadBalancer'
 import { smartMonitoringAutoRepair } from './deployment/monitoring'
 import { securityComplianceHub } from './deployment/securityCompliance'
 
+// Phase 7.2: Professional Enhancements
+import { advancedDeploymentStrategies } from './deployment/strategies'
+import { multiCloudSupport } from './deployment/multicloud'
+
 // Phase 7.1: Global Auto-Integration & Self-Contained Platform
 import { autoInstaller } from './selfcontained/installer'
 import { redisEmulator } from './selfcontained/redisEmulator'
@@ -5091,6 +5095,212 @@ server.get('/api/selfcontained/launch/status', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'GET /api/selfcontained/launch/status' })
     return reply.status(500).send({ error: 'Failed to get launch status' })
+  }
+})
+
+// Phase 7.2: Advanced Deployment Strategies API
+server.post('/api/deployment/bluegreen', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const deploymentId = await advancedDeploymentStrategies.blueGreenDeploy(config)
+
+    return {
+      success: true,
+      deploymentId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/bluegreen' })
+    return reply.status(500).send({ error: 'Failed to deploy blue-green' })
+  }
+})
+
+server.post('/api/deployment/canary', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const deploymentId = await advancedDeploymentStrategies.canaryDeploy(config)
+
+    return {
+      success: true,
+      deploymentId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/canary' })
+    return reply.status(500).send({ error: 'Failed to deploy canary' })
+  }
+})
+
+server.post('/api/deployment/rolling', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const deploymentId = await advancedDeploymentStrategies.rollingDeploy(config)
+
+    return {
+      success: true,
+      deploymentId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/rolling' })
+    return reply.status(500).send({ error: 'Failed to deploy rolling' })
+  }
+})
+
+server.post('/api/deployment/abtest', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const deploymentId = await advancedDeploymentStrategies.abTestDeploy(config)
+
+    return {
+      success: true,
+      deploymentId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/deployment/abtest' })
+    return reply.status(500).send({ error: 'Failed to deploy A/B test' })
+  }
+})
+
+server.get('/api/deployment/bluegreen/:deploymentId', async (request, reply) => {
+  try {
+    const deploymentId = (request.params as any).deploymentId
+
+    const deployment = advancedDeploymentStrategies.getBlueGreenDeployment(deploymentId)
+
+    if (!deployment) {
+      return reply.status(404).send({ error: 'Deployment not found' })
+    }
+
+    return {
+      success: true,
+      deployment,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/deployment/bluegreen/:deploymentId' })
+    return reply.status(500).send({ error: 'Failed to get deployment' })
+  }
+})
+
+server.get('/api/deployment/canary/:deploymentId', async (request, reply) => {
+  try {
+    const deploymentId = (request.params as any).deploymentId
+
+    const deployment = advancedDeploymentStrategies.getCanaryDeployment(deploymentId)
+
+    if (!deployment) {
+      return reply.status(404).send({ error: 'Deployment not found' })
+    }
+
+    return {
+      success: true,
+      deployment,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/deployment/canary/:deploymentId' })
+    return reply.status(500).send({ error: 'Failed to get deployment' })
+  }
+})
+
+// Phase 7.2: Multi-Cloud Support API
+server.post('/api/multicloud/provider', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    await multiCloudSupport.registerProvider(config)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/multicloud/provider' })
+    return reply.status(500).send({ error: 'Failed to register provider' })
+  }
+})
+
+server.post('/api/multicloud/deploy', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const deploymentId = await multiCloudSupport.deployToMultipleClouds(config)
+
+    return {
+      success: true,
+      deploymentId,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/multicloud/deploy' })
+    return reply.status(500).send({ error: 'Failed to deploy to multiple clouds' })
+  }
+})
+
+server.get('/api/multicloud/deployment/:deploymentId', async (request, reply) => {
+  try {
+    const deploymentId = (request.params as any).deploymentId
+
+    const deployment = multiCloudSupport.getDeployment(deploymentId)
+
+    if (!deployment) {
+      return reply.status(404).send({ error: 'Deployment not found' })
+    }
+
+    return {
+      success: true,
+      deployment,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/multicloud/deployment/:deploymentId' })
+    return reply.status(500).send({ error: 'Failed to get deployment' })
+  }
+})
+
+server.post('/api/multicloud/terraform', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const config = body?.config
+
+    if (!config) {
+      return reply.status(400).send({ error: 'config required' })
+    }
+
+    const terraform = await multiCloudSupport.generateTerraform(config)
+
+    return {
+      success: true,
+      terraform,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/multicloud/terraform' })
+    return reply.status(500).send({ error: 'Failed to generate Terraform' })
   }
 })
 
