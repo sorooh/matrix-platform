@@ -1584,6 +1584,8 @@ import { videoRecordingSystem } from './crawler/videoRecording'
 // Phase 7: Autonomous Deployment & Global Orchestration
 import { autonomousDeploymentEngine } from './deployment/engine'
 import { domainSSLManager } from './deployment/domainSSL'
+import { aiLoadBalancerOrchestrator } from './deployment/loadBalancer'
+import { smartMonitoringAutoRepair } from './deployment/monitoring'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -4547,6 +4549,169 @@ server.post('/api/domain/:domain/monitor', async (request, reply) => {
   }
 })
 
+// Phase 7: AI Load Balancer & Global Orchestrator API
+server.post('/api/loadbalancer/region', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const region = body?.region
+
+    if (!region) {
+      return reply.status(400).send({ error: 'region required' })
+    }
+
+    await aiLoadBalancerOrchestrator.registerRegion(region)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/loadbalancer/region' })
+    return reply.status(500).send({ error: 'Failed to register region' })
+  }
+})
+
+server.post('/api/loadbalancer/select-region', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const userLocation = body?.userLocation
+    const requirements = body?.requirements
+
+    const region = await aiLoadBalancerOrchestrator.selectBestRegion(userLocation, requirements)
+
+    return {
+      success: true,
+      region,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/loadbalancer/select-region' })
+    return reply.status(500).send({ error: 'Failed to select region' })
+  }
+})
+
+server.post('/api/loadbalancer/instance', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const instance = body?.instance
+
+    if (!instance) {
+      return reply.status(400).send({ error: 'instance required' })
+    }
+
+    await aiLoadBalancerOrchestrator.registerInstance(instance)
+
+    return { success: true }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/loadbalancer/instance' })
+    return reply.status(500).send({ error: 'Failed to register instance' })
+  }
+})
+
+server.post('/api/loadbalancer/route', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const userLocation = body?.userLocation
+    const requirements = body?.requirements
+
+    const instance = await aiLoadBalancerOrchestrator.routeRequest(userLocation, requirements)
+
+    return {
+      success: true,
+      instance,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/loadbalancer/route' })
+    return reply.status(500).send({ error: 'Failed to route request' })
+  }
+})
+
+server.get('/api/loadbalancer/stats', async (request, reply) => {
+  try {
+    const regionStats = aiLoadBalancerOrchestrator.getRegionStats()
+    const instanceStats = aiLoadBalancerOrchestrator.getInstanceStats()
+
+    return {
+      success: true,
+      regionStats,
+      instanceStats,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/loadbalancer/stats' })
+    return reply.status(500).send({ error: 'Failed to get load balancer stats' })
+  }
+})
+
+// Phase 7: Smart Monitoring & Auto-Repair API
+server.get('/api/monitoring/metrics', async (request, reply) => {
+  try {
+    const metrics = smartMonitoringAutoRepair.getCurrentMetrics()
+
+    return {
+      success: true,
+      metrics,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/monitoring/metrics' })
+    return reply.status(500).send({ error: 'Failed to get metrics' })
+  }
+})
+
+server.get('/api/monitoring/incidents', async (request, reply) => {
+  try {
+    const query = request.query as any
+    const status = query?.status
+
+    let incidents
+    if (status === 'open') {
+      incidents = smartMonitoringAutoRepair.getOpenIncidents()
+    } else {
+      incidents = smartMonitoringAutoRepair.getAllIncidents()
+    }
+
+    return {
+      success: true,
+      incidents,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/monitoring/incidents' })
+    return reply.status(500).send({ error: 'Failed to get incidents' })
+  }
+})
+
+server.get('/api/monitoring/incident/:incidentId', async (request, reply) => {
+  try {
+    const incidentId = (request.params as any).incidentId
+
+    const incident = await smartMonitoringAutoRepair.generateIncidentReport(incidentId)
+
+    if (!incident) {
+      return reply.status(404).send({ error: 'Incident not found' })
+    }
+
+    return {
+      success: true,
+      incident,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/monitoring/incident/:incidentId' })
+    return reply.status(500).send({ error: 'Failed to get incident report' })
+  }
+})
+
+server.post('/api/monitoring/report/daily', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const date = body?.date ? new Date(body.date) : undefined
+
+    const report = await smartMonitoringAutoRepair.generateDailyReport(date)
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/monitoring/report/daily' })
+    return reply.status(500).send({ error: 'Failed to generate daily report' })
+  }
+})
+
 async function listenWithFallback(startPort: number, attempts = 20): Promise<number> {
   let port = startPort
   for (let i = 0; i < attempts; i++) {
@@ -4742,6 +4907,14 @@ const start = async () => {
       // Initialize domain & SSL manager
       await domainSSLManager.initialize()
       logInfo('✅ Domain & SSL Manager initialized')
+
+      // Initialize AI Load Balancer & Global Orchestrator
+      await aiLoadBalancerOrchestrator.initialize()
+      logInfo('✅ AI Load Balancer & Global Orchestrator initialized')
+
+      // Initialize Smart Monitoring & Auto-Repair System
+      await smartMonitoringAutoRepair.initialize()
+      logInfo('✅ Smart Monitoring & Auto-Repair System initialized')
     } catch (error) {
       logError(error as Error, { context: 'Phase 7 initialization' })
       logInfo('⚠️ Phase 7 not available, continuing without it')
