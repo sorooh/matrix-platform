@@ -1531,8 +1531,7 @@ server.get('/api/reporting/performance', async (request, reply) => {
   }
 })
 
-// Advanced Authentication API
-import { advancedAuth } from './enterprise/advancedAuth'
+// Advanced Authentication API (removed - using existing auth system)
 
 server.post('/api/auth/register', async (request, reply) => {
   try {
@@ -1628,8 +1627,7 @@ server.get('/api/auth/session', async (request, reply) => {
   }
 })
 
-// Data Governance API
-import { dataGovernance } from './governance/dataGovernance'
+// Data Governance API (already imported above)
 
 server.post('/api/governance/policies', async (request, reply) => {
   try {
