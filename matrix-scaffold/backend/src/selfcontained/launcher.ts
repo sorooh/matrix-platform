@@ -221,11 +221,29 @@ export const unifiedLauncher = new UnifiedLauncher()
 
 // If run directly, launch the system
 if (require.main === module) {
-  unifiedLauncher.launch().then((result) => {
-    if (result.success) {
-      process.exit(0)
-    } else {
+  (async () => {
+    try {
+      const result = await unifiedLauncher.launch()
+      console.log(result.message)
+      
+      if (result.success) {
+        // Continue with main.ts startup
+        console.log('🚀 Starting main server...')
+        // Import and start main server
+        const { start } = require('../main')
+        if (start) {
+          await start()
+        } else {
+          // If start is not exported, just require the file (it will start automatically)
+          require('../main')
+        }
+      } else {
+        console.error('❌ System launch failed. Please check errors above.')
+        process.exit(1)
+      }
+    } catch (error: any) {
+      console.error('❌ Launch failed:', error)
       process.exit(1)
     }
-  })
+  })()
 }

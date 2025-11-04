@@ -47,12 +47,14 @@
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.47.0",
     "prettier": "^3.0.0",
-    "@types/openai": "^4.20.0"
+    "@types/openai": "^4.20.0",
+    "tsx": "^4.7.0"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "worker": "node ../worker/worker.js",
     "start": "node ./dist/main.js",
+    "matrix:start": "tsx src/selfcontained/launcher.ts",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
