@@ -111,7 +111,7 @@ export class SmartUserAccounts {
     email: string,
     password: string,
     name?: string,
-    options?: { ip?: string; userAgent?: string }
+    options?: { ip?: string; userAgent?: string; referralToken?: string }
   ): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
     try {
       // Check if user exists
@@ -155,6 +155,16 @@ export class SmartUserAccounts {
           referralsCount: 0,
         },
       })
+
+      // Check if user was referred
+      if (options?.referralToken) {
+        try {
+          const { referralSystem } = await import('./referral')
+          await referralSystem.completeReferral(options.referralToken, user.id)
+        } catch (error) {
+          logger.warn('Failed to complete referral on registration:', error)
+        }
+      }
 
       // Log activity
       await this.logActivity(user.id, 'action', 'User registered', {

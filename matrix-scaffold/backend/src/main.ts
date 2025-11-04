@@ -1940,10 +1940,12 @@ server.post('/api/auth/register', async (request, reply) => {
 
     const ip = request.headers['x-forwarded-for'] || request.ip
     const userAgent = request.headers['user-agent']
+    const referralToken = body?.referralToken
 
     const result = await smartUserAccounts.register(email, password, name, {
       ip: ip as string,
       userAgent: userAgent as string,
+      referralToken,
     })
 
     if (!result.success) {
