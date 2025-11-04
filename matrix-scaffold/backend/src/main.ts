@@ -1566,6 +1566,10 @@ import { neuralLoadBalancer } from './neural/loadbalancer'
 import { autoScalingSystem } from './neural/autoscaling'
 import { continuousLearningSystem } from './neural/learning'
 import { stressTestSystem } from './neural/stresstest'
+import { productionGPUSystem } from './neural/production'
+import { endToEndTestingSystem } from './neural/testing'
+import { performanceValidationSystem } from './neural/validation'
+import { finalIntegrationSystem } from './neural/final'
 
 // Advanced Multi-Agent Orchestration API
 server.post('/api/orchestration/tasks', async (request, reply) => {
@@ -3406,6 +3410,168 @@ server.post('/api/neural/stresstest/performance', async (request, reply) => {
   } catch (error: any) {
     logError(error as Error, { context: 'POST /api/neural/stresstest/performance' })
     return reply.status(500).send({ error: 'Failed to run performance test' })
+  }
+})
+
+// Phase 5: Production GPU API
+server.get('/api/neural/production/gpu/status', async (request, reply) => {
+  try {
+    const status = productionGPUSystem.getStatus()
+    const recommendations = productionGPUSystem.getRecommendedOptimizations()
+
+    return {
+      success: true,
+      status,
+      recommendations,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/production/gpu/status' })
+    return reply.status(500).send({ error: 'Failed to get production GPU status' })
+  }
+})
+
+// Phase 5: End-to-End Testing API
+server.get('/api/neural/testing/suites', async (request, reply) => {
+  try {
+    const suites = endToEndTestingSystem.getAllTestSuites()
+
+    return {
+      success: true,
+      suites: Array.from(suites.entries()).map(([name, suite]) => ({
+        name,
+        description: suite.description,
+        totalTests: suite.totalTests,
+        passedTests: suite.passedTests,
+        failedTests: suite.failedTests,
+        successRate: suite.successRate,
+      })),
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/testing/suites' })
+    return reply.status(500).send({ error: 'Failed to get test suites' })
+  }
+})
+
+server.post('/api/neural/testing/suites/:suiteName/run', async (request, reply) => {
+  try {
+    const suiteName = (request.params as any).suiteName
+
+    const result = await endToEndTestingSystem.runTestSuite(suiteName)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/testing/suites/:suiteName/run' })
+    return reply.status(500).send({ error: 'Failed to run test suite' })
+  }
+})
+
+server.post('/api/neural/testing/run-all', async (request, reply) => {
+  try {
+    const result = await endToEndTestingSystem.runAllTests()
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/testing/run-all' })
+    return reply.status(500).send({ error: 'Failed to run all tests' })
+  }
+})
+
+// Phase 5: Performance Validation API
+server.post('/api/neural/validation/validate', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const criteria = body?.criteria
+
+    const result = await performanceValidationSystem.validatePerformance(criteria)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/validation/validate' })
+    return reply.status(500).send({ error: 'Failed to validate performance' })
+  }
+})
+
+server.post('/api/neural/validation/benchmark', async (request, reply) => {
+  try {
+    const body = request.body as any
+    const iterations = parseInt(body?.iterations || '100', 10)
+    const concurrency = parseInt(body?.concurrency || '10', 10)
+
+    const result = await performanceValidationSystem.runBenchmarks(iterations, concurrency)
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/validation/benchmark' })
+    return reply.status(500).send({ error: 'Failed to run benchmarks' })
+  }
+})
+
+// Phase 5: Final Integration API
+server.get('/api/neural/final/status', async (request, reply) => {
+  try {
+    const status = await finalIntegrationSystem.getSystemStatus()
+
+    return {
+      success: true,
+      status,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/final/status' })
+    return reply.status(500).send({ error: 'Failed to get final system status' })
+  }
+})
+
+server.get('/api/neural/final/health', async (request, reply) => {
+  try {
+    const health = await finalIntegrationSystem.verifySystemHealth()
+
+    return {
+      success: true,
+      health,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/final/health' })
+    return reply.status(500).send({ error: 'Failed to verify system health' })
+  }
+})
+
+server.post('/api/neural/final/validate', async (request, reply) => {
+  try {
+    const result = await finalIntegrationSystem.runComprehensiveValidation()
+
+    return {
+      success: true,
+      result,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'POST /api/neural/final/validate' })
+    return reply.status(500).send({ error: 'Failed to run comprehensive validation' })
+  }
+})
+
+server.get('/api/neural/final/report', async (request, reply) => {
+  try {
+    const report = await finalIntegrationSystem.generateFinalReport()
+
+    return {
+      success: true,
+      report,
+    }
+  } catch (error: any) {
+    logError(error as Error, { context: 'GET /api/neural/final/report' })
+    return reply.status(500).send({ error: 'Failed to generate final report' })
   }
 })
 
