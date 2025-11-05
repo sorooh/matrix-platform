@@ -29,10 +29,22 @@ import { mlOps } from '../ml/mlops'
 import { modelServing } from '../ml/modelServing'
 import { modelRegistry } from '../ml/modelRegistry'
 import { advancedIntegrationPlatform } from '../integration/advancedIntegrationPlatform'
+import { workflowAutomation } from '../integration/workflowAutomation'
+import { integrationTemplates } from '../integration/integrationTemplates'
+import { customConnectors } from '../integration/customConnectors'
+import { integrationAnalytics } from '../integration/integrationAnalytics'
+import { apiMarketplace } from '../api/apiMarketplace'
 import { advancedBusinessPlatform } from '../business/advancedBusinessPlatform'
 import { customerSuccessPlatform } from '../business/customerSuccess'
 import { revenueRecognitionSystem } from '../business/revenueRecognition'
 import { pricingOptimization } from '../business/pricingOptimization'
+import { subscriptionAnalytics } from '../business/subscriptionAnalytics'
+import { customerJourneyAnalytics } from '../business/customerJourney'
+import { marketingAutomation } from '../business/marketingAutomation'
+import { dataSynchronization } from '../data/dataSynchronization'
+import { dataReplication } from '../data/dataReplication'
+import { modelMonitoring } from '../ml/modelMonitoring'
+import { abTesting } from '../ml/abTesting'
 
 export async function registerPhase11Routes(server: FastifyInstance) {
   // Advanced API Platform
@@ -200,6 +212,138 @@ export async function registerPhase11Routes(server: FastifyInstance) {
     } catch (error) {
       logError(error as Error, { context: 'POST /api/phase11/business/customer-success/track' })
       return reply.status(500).send({ error: 'Failed to track customer' })
+    }
+  })
+
+  // Workflow Automation
+  server.post('/api/phase11/integration/workflow', async (request, reply) => {
+    try {
+      const { name, trigger, actions } = request.body as any
+      const workflow = await workflowAutomation.createWorkflow(name, trigger, actions)
+      return reply.send({ success: true, workflow })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/integration/workflow' })
+      return reply.status(500).send({ error: 'Failed to create workflow' })
+    }
+  })
+
+  // Integration Templates
+  server.get('/api/phase11/integration/templates', async (request, reply) => {
+    try {
+      const { category } = request.query as any
+      const templates = await integrationTemplates.getTemplates(category)
+      return reply.send({ success: true, templates })
+    } catch (error) {
+      logError(error as Error, { context: 'GET /api/phase11/integration/templates' })
+      return reply.status(500).send({ error: 'Failed to get templates' })
+    }
+  })
+
+  // Custom Connectors
+  server.post('/api/phase11/integration/connector', async (request, reply) => {
+    try {
+      const { name, type, config } = request.body as any
+      const connector = await customConnectors.createConnector(name, type, config)
+      return reply.send({ success: true, connector })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/integration/connector' })
+      return reply.status(500).send({ error: 'Failed to create connector' })
+    }
+  })
+
+  // API Marketplace
+  server.get('/api/phase11/api/marketplace', async (request, reply) => {
+    try {
+      const { category } = request.query as any
+      const apis = await apiMarketplace.getAPIs(category)
+      return reply.send({ success: true, apis })
+    } catch (error) {
+      logError(error as Error, { context: 'GET /api/phase11/api/marketplace' })
+      return reply.status(500).send({ error: 'Failed to get APIs' })
+    }
+  })
+
+  // Subscription Analytics
+  server.post('/api/phase11/business/subscription/analytics', async (request, reply) => {
+    try {
+      const { mrr, arr, churnRate, newSubscriptions, upgrades, downgrades } = request.body as any
+      const analytics = await subscriptionAnalytics.trackMetrics(mrr, arr, churnRate, newSubscriptions, upgrades, downgrades)
+      return reply.send({ success: true, analytics })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/business/subscription/analytics' })
+      return reply.status(500).send({ error: 'Failed to track metrics' })
+    }
+  })
+
+  // Customer Journey
+  server.post('/api/phase11/business/customer-journey/track', async (request, reply) => {
+    try {
+      const { customerId, stage, metadata } = request.body as any
+      const journey = await customerJourneyAnalytics.trackStage(customerId, stage, metadata)
+      return reply.send({ success: true, journey })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/business/customer-journey/track' })
+      return reply.status(500).send({ error: 'Failed to track journey' })
+    }
+  })
+
+  // Marketing Automation
+  server.post('/api/phase11/business/marketing/campaign', async (request, reply) => {
+    try {
+      const { name, type, target, content, schedule } = request.body as any
+      const campaign = await marketingAutomation.createCampaign(name, type, target, content, schedule)
+      return reply.send({ success: true, campaign })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/business/marketing/campaign' })
+      return reply.status(500).send({ error: 'Failed to create campaign' })
+    }
+  })
+
+  // Data Synchronization
+  server.post('/api/phase11/data/sync', async (request, reply) => {
+    try {
+      const { source, destination, syncType, schedule } = request.body as any
+      const sync = await dataSynchronization.createSync(source, destination, syncType, schedule)
+      return reply.send({ success: true, sync })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/data/sync' })
+      return reply.status(500).send({ error: 'Failed to create sync' })
+    }
+  })
+
+  // Data Replication
+  server.post('/api/phase11/data/replication', async (request, reply) => {
+    try {
+      const { source, destinations, replicationType } = request.body as any
+      const replication = await dataReplication.createReplication(source, destinations, replicationType)
+      return reply.send({ success: true, replication })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/data/replication' })
+      return reply.status(500).send({ error: 'Failed to create replication' })
+    }
+  })
+
+  // Model Monitoring
+  server.post('/api/phase11/ml/monitoring/track', async (request, reply) => {
+    try {
+      const { modelId, metric, value, threshold } = request.body as any
+      const monitoring = await modelMonitoring.trackMetric(modelId, metric, value, threshold)
+      return reply.send({ success: true, monitoring })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/ml/monitoring/track' })
+      return reply.status(500).send({ error: 'Failed to track metric' })
+    }
+  })
+
+  // A/B Testing
+  server.post('/api/phase11/ml/ab-test', async (request, reply) => {
+    try {
+      const { name, modelA, modelB, split } = request.body as any
+      const test = await abTesting.createTest(name, modelA, modelB, split)
+      return reply.send({ success: true, test })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/ml/ab-test' })
+      return reply.status(500).send({ error: 'Failed to create A/B test' })
     }
   })
 }

@@ -32,10 +32,22 @@ import { mlOps } from '../ml/mlops'
 import { modelServing } from '../ml/modelServing'
 import { modelRegistry } from '../ml/modelRegistry'
 import { advancedIntegrationPlatform } from '../integration/advancedIntegrationPlatform'
+import { workflowAutomation } from '../integration/workflowAutomation'
+import { integrationTemplates } from '../integration/integrationTemplates'
+import { customConnectors } from '../integration/customConnectors'
+import { integrationAnalytics } from '../integration/integrationAnalytics'
+import { apiMarketplace } from '../api/apiMarketplace'
 import { advancedBusinessPlatform } from '../business/advancedBusinessPlatform'
 import { customerSuccessPlatform } from '../business/customerSuccess'
 import { revenueRecognitionSystem } from '../business/revenueRecognition'
 import { pricingOptimization } from '../business/pricingOptimization'
+import { subscriptionAnalytics } from '../business/subscriptionAnalytics'
+import { customerJourneyAnalytics } from '../business/customerJourney'
+import { marketingAutomation } from '../business/marketingAutomation'
+import { dataSynchronization } from '../data/dataSynchronization'
+import { dataReplication } from '../data/dataReplication'
+import { modelMonitoring } from '../ml/modelMonitoring'
+import { abTesting } from '../ml/abTesting'
 
 export async function initializePhase11(server: FastifyInstance) {
   try {
@@ -65,10 +77,22 @@ export async function initializePhase11(server: FastifyInstance) {
     await modelServing.initialize()
     await modelRegistry.initialize()
     await advancedIntegrationPlatform.initialize()
+    await workflowAutomation.initialize()
+    await integrationTemplates.initialize()
+    await customConnectors.initialize()
+    await integrationAnalytics.initialize()
+    await apiMarketplace.initialize()
     await advancedBusinessPlatform.initialize()
     await customerSuccessPlatform.initialize()
     await revenueRecognitionSystem.initialize()
     await pricingOptimization.initialize()
+    await subscriptionAnalytics.initialize()
+    await customerJourneyAnalytics.initialize()
+    await marketingAutomation.initialize()
+    await dataSynchronization.initialize()
+    await dataReplication.initialize()
+    await modelMonitoring.initialize()
+    await abTesting.initialize()
 
     // Register routes
     await registerPhase11Routes(server)
