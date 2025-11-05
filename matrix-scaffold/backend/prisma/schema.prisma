@@ -297,24 +297,31 @@ model UserPoints {
 
 // Phase 4: Billing & Subscriptions
 model Subscription {
-  id            String   @id @default(uuid())
-  userId        String
-  plan          String   // free | pro | enterprise
-  status        String   @default("active") // active | cancelled | expired
-  stripeId      String?
-  paypalId      String?
+  id                String   @id @default(uuid())
+  userId            String
+  tier              String   // free | pro | enterprise | custom
+  status            String   @default("active") // active | cancelled | expired | suspended | trial
+  paymentProvider    String   // stripe | paypal | crypto
+  paymentMethodId   String?
   currentPeriodStart DateTime @default(now())
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  trialEnd          DateTime?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+  usageMetrics      UsageMetrics[]
+  apiKeys           APIKey[]
+  instances         PrivateInstance[]
+  licenses          License[]
 
   @@index([userId])
   @@index([status])
-  @@index([plan])
+  @@index([tier])
   @@map("subscriptions")
 }
 
@@ -380,5 +387,238 @@ model CompanionAgent {
   @@index([userId])
   @@index([enabled])
   @@map("companion_agents")
+}
+
+// Phase 8: AI Rental & Commercial Deployment
+
+model Invoice {
+  id              String   @id @default(uuid())
+  subscriptionId  String
+  userId          String
+  amount          Float
+  currency        String   @default("USD")
+  status          String   @default("draft") // draft | open | paid | void | uncollectible
+  periodStart     DateTime
+  periodEnd       DateTime
+  items           Json     // InvoiceItem[]
+  paymentProvider String   // stripe | paypal | crypto
+  paymentIntentId String?
+  paidAt          DateTime?
+  dueDate         DateTime
+  createdAt       DateTime @default(now())
+
+  // Relations
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model UsageMetrics {
+  id              String       @id @default(uuid())
+  subscriptionId  String
+  periodStart     DateTime
+  periodEnd       DateTime
+  requests        Int          @default(0)
+  tokens          Int          @default(0)
+  cost            Float        @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, periodStart])
+  @@index([subscriptionId])
+  @@index([periodStart])
+  @@map("usage_metrics")
+}
+
+model APIKey {
+  id              String   @id @default(uuid())
+  userId          String
+  subscriptionId  String?
+  key             String   @unique
+  name            String
+  status          String   @default("active") // active | revoked | expired | suspended
+  rateLimit       Json     // RateLimit
+  usage           Json     // UsageStats
+  allowedAIs      String[] // AI IDs that can be accessed
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+
+  // Relations
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([key])
+  @@map("api_keys")
+}
+
+model AIListing {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  type            String   // nicholas | surooh | lida | bot | model | custom
+  capabilities    String[]
+  price           Json     // Pricing
+  usageCapacity   Json     // UsageCapacity
+  status          String   @default("available") // available | purchased | subscribed | private
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  purchases       Purchase[]
+  reviews         Review[]
+
+  @@index([type])
+  @@index([status])
+  @@map("ai_listings")
+}
+
+model Purchase {
+  id              String   @id @default(uuid())
+  userId          String
+  aiId            String
+  pricingModel    String   // instant | monthly | custom | private
+  subscriptionId  String?
+  instanceId      String?
+  amount          Float
+  currency        String   @default("USD")
+  status          String   @default("pending") // pending | completed | failed | cancelled
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  // Relations
+  listing         AIListing @relation(fields: [aiId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([aiId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("purchases")
+}
+
+model Review {
+  id              String   @id @default(uuid())
+  aiId            String
+  userId          String
+  rating          Int      // 1-5
+  title           String
+  content         String   @db.Text
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  listing         AIListing @relation(fields: [aiId], references: [id], onDelete: Cascade)
+
+  @@index([aiId])
+  @@index([userId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model PrivateInstance {
+  id              String   @id @default(uuid())
+  userId          String
+  subscriptionId String
+  name            String
+  type            String   // nicholas | surooh | lida | bot | model | custom
+  status          String   @default("active") // active | suspended | expired | deleted
+  resources       Json     // InstanceResources
+  performance     Json     // InstancePerformance
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime?
+
+  // Relations
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("private_instances")
+}
+
+model License {
+  id              String   @id @default(uuid())
+  userId          String
+  subscriptionId  String?
+  aiId            String
+  type            String   // personal | commercial | reseller | custom
+  status          String   @default("active") // active | expired | revoked | suspended
+  terms           Json     // LicenseTerms
+  metadata        Json?
+  issuedAt        DateTime @default(now())
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+
+  // Relations
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([aiId])
+  @@index([status])
+  @@map("licenses")
+}
+
+model ComplianceCheck {
+  id              String   @id @default(uuid())
+  userId          String
+  subscriptionId String?
+  status          String   // compliant | non_compliant | pending
+  checks          Json     // ComplianceCheckItem[]
+  passed          Boolean
+  checkedAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([checkedAt])
+  @@map("compliance_checks")
+}
+
+model UsageReport {
+  id              String   @id @default(uuid())
+  userId          String
+  subscriptionId String?
+  period          String   // daily | weekly | monthly | custom
+  periodStart     DateTime
+  periodEnd       DateTime
+  summary         Json     // UsageSummary
+  details         Json     // UsageDetail[]
+  generatedAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([period])
+  @@index([generatedAt])
+  @@map("usage_reports")
+}
+
+model InvoiceReport {
+  id              String   @id @default(uuid())
+  userId          String
+  periodStart     DateTime
+  periodEnd       DateTime
+  summary         Json     // InvoiceSummary
+  invoices        String[] // Invoice IDs
+  generatedAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([generatedAt])
+  @@map("invoice_reports")
 }
 

@@ -7122,6 +7122,16 @@ const start = async () => {
       logInfo('⚠️ Phase 7.3.1 not available, continuing without it')
     }
 
+    // Phase 8: Initialize AI Rental & Commercial Deployment
+    try {
+      const { initializePhase8 } = await import('./phase8/index')
+      await initializePhase8(server)
+      logInfo('✅ Phase 8 - AI Rental & Commercial Deployment initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 8 initialization' })
+      logInfo('⚠️ Phase 8 not available, continuing without it')
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
   } catch (err) {

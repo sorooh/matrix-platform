@@ -2,6 +2,91 @@
 
 All notable changes to the Matrix Platform will be documented in this file.
 
+## [8.0.0] - 2025-01-05
+
+### Added - Phase 8: AI Rental & Commercial Deployment (100% Complete)
+
+#### Subscription & Billing System
+- **Multi-Provider Payment Support**: Stripe, PayPal, Crypto (USDT, BTC, ETH)
+- **Subscription Management**: Create, update, cancel subscriptions with tier support (Free, Pro, Enterprise, Custom)
+- **Usage-Based Billing**: Track requests, tokens, and cost per subscription
+- **Automatic Invoice Generation**: Generate and send invoices automatically
+- **Payment Processing**: Process payments through multiple providers
+
+#### AI Public Gateway
+- **API Key Management**: Create, revoke, renew API keys
+- **Rate Limiting**: Configurable per-minute, per-hour, per-day limits
+- **Usage Tracking**: Track API usage per key (requests, tokens, cost)
+- **API Playground**: Test API calls directly from dashboard
+
+#### AI Marketplace
+- **AI Listings**: Display available AIs (Nicholas, Surooh, Lida, Bots, Models)
+- **Pricing Models**: Support for instant purchase, monthly subscription, custom pricing, private instances
+- **Reviews & Ratings**: Customer reviews and ratings system
+- **Purchase Management**: Complete purchase flow from listing to completion
+
+#### Private Instance Manager
+- **Resource Isolation**: Isolated memory, storage, and API access per instance
+- **Performance Monitoring**: Track uptime, requests, tokens, cost per instance
+- **Auto-Management**: Auto-suspend/delete instances on subscription expiration
+- **Instance Lifecycle**: Complete instance lifecycle management
+
+#### Usage & Invoice Tracker
+- **Usage Reports**: Generate daily, weekly, monthly usage reports
+- **Invoice Reports**: Generate financial reports for invoices
+- **Export Formats**: Export reports in CSV, PDF, JSON, XLSX formats
+- **Financial Analytics**: Detailed usage and cost analytics
+
+#### License & Governance Layer
+- **License Management**: Personal, Commercial, Reseller, Custom licenses
+- **IP Protection**: Intellectual property protection for AI intelligences
+- **Compliance Checking**: Automatic compliance checks before subscription activation
+- **License Validation**: Validate license usage for AI access
+
+#### API Endpoints (48 new endpoints)
+- Billing: 15 endpoints
+- Gateway: 8 endpoints
+- Marketplace: 7 endpoints
+- Instances: 9 endpoints
+- Licensing: 9 endpoints
+
+#### Database Tables (11 new tables)
+- Invoice
+- UsageMetrics
+- APIKey
+- AIListing
+- Purchase
+- Review
+- PrivateInstance
+- License
+- ComplianceCheck
+- UsageReport
+- InvoiceReport
+
+#### Files Created
+- `src/billing/subscription.ts`
+- `src/billing/paymentProviders.ts`
+- `src/billing/billingRoutes.ts`
+- `src/billing/usageTracker.ts`
+- `src/gateway/apiGateway.ts`
+- `src/gateway/gatewayRoutes.ts`
+- `src/marketplace/marketplace.ts`
+- `src/marketplace/marketplaceRoutes.ts`
+- `src/instances/privateInstance.ts`
+- `src/instances/instanceRoutes.ts`
+- `src/licensing/governance.ts`
+- `src/licensing/licensingRoutes.ts`
+- `src/phase8/index.ts`
+
+#### Statistics
+- **Total Files**: 13 files
+- **Total Lines of Code**: ~3,400+ lines
+- **Total API Endpoints**: 48 endpoints
+- **Total Database Tables**: 11 tables
+- **Completion**: 100%
+
+---
+
 ## [7.3.1] - 2025-01-04
 
 ### Added - Phase 7.3.1: Professional Enhancements (100% Complete)
