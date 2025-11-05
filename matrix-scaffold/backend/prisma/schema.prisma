@@ -2905,3 +2905,210 @@ model EthicsViolationReport {
   @@index([severity])
   @@map("ethics_violation_reports")
 }
+
+// Phase 9.2: Matrix Core Governance & Self-Evolution Systems
+
+model Innovation {
+  id              String   @id @default(uuid())
+  type            String   // feature | bug_fix | performance | security | ux | api
+  title           String
+  description     String   @db.Text
+  priority        String   // low | medium | high | critical
+  status          String   @default("proposed") // proposed | approved | in_progress | completed | rejected
+  source          String   // telemetry | feedback | market_data | ai_analysis
+  data            Json
+  impact          Json     // { users, revenue, performance }
+  proposedAt      DateTime @default(now())
+  approvedAt      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@map("innovations")
+}
+
+model Feedback {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String   // feature_request | bug_report | improvement | complaint
+  content         String   @db.Text
+  rating          Int?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@map("feedback")
+}
+
+model AppEvolution {
+  id              String   @id @default(uuid())
+  appId           String
+  status          String   // monitoring | analyzing | recommending | updating | completed
+  metrics         Json     // { performance, userSatisfaction, usage, errorRate }
+  recommendations Json     // Recommendation[]
+  lastAnalyzed    DateTime @default(now())
+  nextAnalysis    DateTime
+
+  @@index([appId])
+  @@index([status])
+  @@map("app_evolutions")
+}
+
+model Threat {
+  id              String   @id @default(uuid())
+  type            String   // ddos | malware | sql_injection | xss | csrf | brute_force | unauthorized_access | data_breach
+  severity        String   // low | medium | high | critical
+  source          Json     // { ip, country, userAgent }
+  target          Json     // { endpoint, resource }
+  detectedAt      DateTime @default(now())
+  mitigatedAt     DateTime?
+  status          String   @default("detected") // detected | mitigated | resolved
+  mitigation      String[] // block | rate_limit | challenge | alert | quarantine
+
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@map("threats")
+}
+
+model Vulnerability {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  severity        String   // low | medium | high | critical
+  component       String
+  cve             String?
+  detectedAt      DateTime @default(now())
+  patchedAt       DateTime?
+  status          String   @default("detected") // detected | patching | patched | resolved
+
+  @@index([severity])
+  @@index([status])
+  @@map("vulnerabilities")
+}
+
+model RightsAndResponsibilities {
+  id              String   @id @default(uuid())
+  partyType       String   // platform | user | vendor | developer | partner
+  rights          Json     // Right[]
+  responsibilities Json     // Responsibility[]
+  effectiveDate   DateTime @default(now())
+  expiresAt       DateTime?
+  version         String   @default("1.0.0")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([partyType])
+  @@index([version])
+  @@map("rights_and_responsibilities")
+}
+
+model PublicIdentity {
+  id              String   @id @default(uuid())
+  section         String   // about | vision | mission | values | goals | structure | sitemap
+  language        String   // en | ar | nl | zh | fr | de | es | ja
+  title           String
+  content         String   @db.Text
+  order           Int      @default(0)
+  isActive        Boolean  @default(true)
+  parentId        String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([section])
+  @@index([language])
+  @@index([isActive])
+  @@map("public_identities")
+}
+
+model SiteMap {
+  id              String   @id @default(uuid())
+  name            String
+  url             String
+  description     String
+  category        String
+  order           Int      @default(0)
+  parentId        String?
+  isActive        Boolean  @default(true)
+
+  @@index([category])
+  @@index([isActive])
+  @@map("site_map")
+}
+
+model MatrixLicense {
+  id              String   @id @default(uuid())
+  type            String   // application | ai | partner | developer | custom
+  entityId        String
+  entityType      String   // app | ai | partner | developer
+  status          String   @default("pending") // pending | active | expired | suspended | revoked
+  licenseKey      String   @unique
+  token           String?
+  period          String   // monthly | yearly | lifetime | custom
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  autoRenew       Boolean  @default(true)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([entityId])
+  @@index([status])
+  @@index([licenseKey])
+  @@map("matrix_licenses")
+}
+
+model LicenseVerification {
+  id              String   @id @default(uuid())
+  licenseId       String
+  licenseKey      String
+  verified        Boolean  @default(false)
+  verifiedAt      DateTime @default(now())
+  ipAddress       String?
+  userAgent       String?
+  error           String?
+
+  @@index([licenseId])
+  @@index([licenseKey])
+  @@map("license_verifications")
+}
+
+model SmartContract {
+  id              String   @id @default(uuid())
+  type            String   // sale | lease | license | development | maintenance | reseller | partner
+  matrixLegalId   String   @unique
+  parties         Json     // ContractParty[]
+  languages       String[] // en | ar | nl | zh | fr | hi | de | es | ja
+  primaryLanguage String   @default("en")
+  content         Json     // Record<ContractLanguage, string>
+  status          String   @default("draft") // draft | pending | signed | active | expired | terminated
+  signedAt        DateTime?
+  expiresAt       DateTime?
+  hash            String   // SHA-256 hash
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([matrixLegalId])
+  @@index([status])
+  @@map("smart_contracts")
+}
+
+model ContractAddendum {
+  id              String   @id @default(uuid())
+  contractId      String
+  type            String   // renewal | modification | termination
+  content         Json     // Record<ContractLanguage, string>
+  signedAt        DateTime @default(now())
+  hash            String   // SHA-256 hash
+
+  @@index([contractId])
+  @@index([type])
+  @@map("contract_addendums")
+}

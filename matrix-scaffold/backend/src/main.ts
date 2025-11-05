@@ -7213,6 +7213,16 @@ const start = async () => {
       logInfo('⚠️ Phase 9.1 not available, continuing without it')
     }
 
+    // Phase 9.2: Initialize Matrix Core Governance & Self-Evolution Systems
+    try {
+      const { initializePhase9_2 } = await import('./phase9_2/index')
+      await initializePhase9_2(server)
+      logInfo('✅ Phase 9.2 - Matrix Core Governance & Self-Evolution Systems initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 9.2 initialization' })
+      logInfo('⚠️ Phase 9.2 not available, continuing without it')
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
   } catch (err) {
