@@ -1,0 +1,17 @@
+name = "matrix-platform"
+main = "matrix-scaffold/backend/dist/index.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+routes = [
+  { pattern = "matrix-platform.com", zone_name = "matrix-platform.com" },
+  { pattern = "*.matrix-platform.com", zone_name = "matrix-platform.com" }
+]
+
+[build]
+command = "cd matrix-scaffold/backend && npm run build"
+
+[env.production.vars]
+NODE_ENV = "production"
+VERSION = "11.0.0"
+

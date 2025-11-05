@@ -7329,6 +7329,15 @@ const start = async () => {
       logInfo('⚠️ Phase 11 not available, continuing without it')
     }
 
+    // Register health routes
+    registerHealthRoutes(server)
+
+    // Initialize production environment
+    if (process.env.NODE_ENV === 'production') {
+      const { initializeProduction } = await import('./production/productionInit')
+      await initializeProduction(server)
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
     logInfo('🌌 Matrix Platform is now fully autonomous and globally competitive! 🌌')
