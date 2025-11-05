@@ -715,6 +715,321 @@ model TwoFactorAuth {
   @@map("two_factor_auth")
 }
 
+// Phase 8.4: Developer Marketplace & AI Runtime
+
+model Developer {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  email             String
+  name              String
+  company           String?
+  status            String   @default("pending") // pending | verified | suspended | rejected
+  verificationLevel String   @default("email") // email | kyc | full
+  tier              String   @default("free") // free | pro | enterprise
+  walletId          String   @unique
+  profile           Json     // DeveloperProfile
+  portfolio         Json     // DeveloperPortfolio
+  kycData           Json?    // KYCData
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  apps              App[]
+  wallet            DeveloperWallet?
+  withdrawals       Withdrawal[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([verificationLevel])
+  @@map("developers")
+}
+
+model App {
+  id              String   @id @default(uuid())
+  developerId     String
+  name            String
+  slug            String   @unique
+  description     String   @db.Text
+  longDescription String?  @db.Text
+  category        String
+  tags            String[]
+  version         String   @default("1.0.0")
+  status          String   @default("draft") // draft | pending | reviewing | approved | rejected | published | suspended
+  accessLevel     String   @default("private") // public | private | premium | enterprise
+  licenseType     String   @default("closed_source") // open_source | closed_source | commercial | custom
+  pricing         Json     // Pricing
+  sourceCode      String?  @db.Text
+  repository      String?
+  icon            String?
+  screenshots     String[]
+  video           String?
+  documentation  String?  @db.Text
+  requirements    String[]
+  features        String[]
+  changelog       String?  @db.Text
+  licenseKey      String?
+  usageTokens     Int?
+  totalDownloads Int      @default(0)
+  totalRevenue    Float    @default(0)
+  rating          Float    @default(0)
+  reviews         Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  versions        AppVersion[]
+  installations   AppInstallation[]
+  appReviews      AppReview[]
+  revenueShares   RevenueShare[]
+  scanResults     CodeScanResult[]
+
+  @@index([developerId])
+  @@index([status])
+  @@index([category])
+  @@index([slug])
+  @@map("apps")
+}
+
+model AppVersion {
+  id              String   @id @default(uuid())
+  appId           String
+  version         String
+  status          String   @default("draft") // draft | published | deprecated | archived
+  compatibility   String   @default("backward_compatible") // backward_compatible | breaking | major | minor | patch
+  changelog       String?  @db.Text
+  sourceCode      String   @db.Text
+  runtimeConfig   Json?
+  apiTokens       String[]
+  endpoints       String[]
+  isStable        Boolean  @default(false)
+  isDefault        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+  deprecatedAt    DateTime?
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  appTokens       AppToken[]
+
+  @@unique([appId, version])
+  @@index([appId])
+  @@index([status])
+  @@map("app_versions")
+}
+
+model AppToken {
+  id                String   @id @default(uuid())
+  appId             String
+  version           String
+  token             String   @unique
+  name              String
+  permissions       String[]
+  rateLimit         Json     // RateLimit
+  isActive          Boolean  @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  appVersion        AppVersion @relation(fields: [appId, version], references: [appId, version], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([token])
+  @@index([isActive])
+  @@map("app_tokens")
+}
+
+model AppInstance {
+  id              String   @id @default(uuid())
+  appId           String
+  developerId     String
+  version         String
+  status          String   @default("pending") // pending | running | stopped | error
+  containerId     String?
+  runtimeConfig   Json     // RuntimeConfig
+  resourceUsage   Json     // ResourceUsage
+  endpoint        String   @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  metrics         RuntimeMetrics[]
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([status])
+  @@map("app_instances")
+}
+
+model RuntimeMetrics {
+  id              String   @id @default(uuid())
+  instanceId     String
+  cpu             Float
+  memory          Float
+  storage         Float
+  requests        Int      @default(0)
+  errors          Int      @default(0)
+  latency         Float
+  uptime          Int
+  timestamp       DateTime @default(now())
+
+  // Relations
+  instance       AppInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@index([timestamp])
+  @@map("runtime_metrics")
+}
+
+model DeveloperWallet {
+  id              String   @id @default(uuid())
+  developerId     String   @unique
+  balance         Float    @default(0)
+  currency        String   @default("USD")
+  pendingBalance  Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalWithdrawn  Float    @default(0)
+  lastUpdated     DateTime @default(now())
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@index([developerId])
+  @@map("developer_wallets")
+}
+
+model RevenueShare {
+  id                String   @id @default(uuid())
+  transactionId     String
+  appId             String
+  developerId       String
+  userId            String
+  amount            Float
+  currency          String   @default("USD")
+  developerShare    Float
+  platformShare     Float
+  developerPercentage Float
+  platformPercentage Float
+  type              String   // subscription | one_time | usage | commission
+  status            String   @default("pending") // pending | processing | completed | failed
+  processedAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  app               App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("revenue_shares")
+}
+
+model Withdrawal {
+  id              String   @id @default(uuid())
+  developerId     String
+  amount          Float
+  currency        String   @default("USD")
+  walletAddress   String?
+  bankAccount     String?
+  paymentMethod   String   // crypto | bank | paypal | stripe
+  status          String   @default("pending") // pending | processing | completed | failed
+  processedAt     DateTime?
+  transactionHash String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@index([developerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdrawals")
+}
+
+model CodeScanResult {
+  id              String   @id @default(uuid())
+  appId           String
+  version         String
+  status          String   @default("pending") // pending | scanning | completed | failed
+  riskLevel       String   @default("low") // low | medium | high | critical
+  issues          Json     // ScanIssue[]
+  score           Int      // 0-100
+  metadata        Json?
+  scannedAt       DateTime @default(now())
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([version])
+  @@index([riskLevel])
+  @@map("code_scan_results")
+}
+
+model SecurityAudit {
+  id              String   @id @default(uuid())
+  appId           String
+  developerId     String
+  action          String   // publish | update | delete | approve | reject
+  scanResultId    String?
+  riskLevel       String   @default("low") // low | medium | high | critical
+  approved        Boolean  @default(false)
+  approvedBy      String?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("security_audits")
+}
+
+model AppReview {
+  id              String   @id @default(uuid())
+  appId           String
+  userId          String
+  rating          Int      // 1-5
+  title           String?
+  comment         String?  @db.Text
+  status          String   @default("pending") // pending | approved | rejected
+  helpful         Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([userId])
+  @@index([status])
+  @@index([rating])
+  @@map("app_reviews")
+}
+
+model AppInstallation {
+  id              String   @id @default(uuid())
+  appId           String
+  userId          String
+  version         String
+  instanceId      String?
+  status          String   @default("installed") // installed | running | stopped | uninstalled
+  installedAt     DateTime @default(now())
+  lastUsedAt      DateTime?
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([userId])
+  @@index([status])
+  @@map("app_installations")
+}
+
 // Phase 8.2: Partner & Reseller Portal
 
 model Partner {
@@ -1193,5 +1508,320 @@ model TwoFactorAuth {
 
   @@index([userId])
   @@map("two_factor_auth")
+}
+
+// Phase 8.4: Developer Marketplace & AI Runtime
+
+model Developer {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  email             String
+  name              String
+  company           String?
+  status            String   @default("pending") // pending | verified | suspended | rejected
+  verificationLevel String   @default("email") // email | kyc | full
+  tier              String   @default("free") // free | pro | enterprise
+  walletId          String   @unique
+  profile           Json     // DeveloperProfile
+  portfolio         Json     // DeveloperPortfolio
+  kycData           Json?    // KYCData
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  apps              App[]
+  wallet            DeveloperWallet?
+  withdrawals       Withdrawal[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([verificationLevel])
+  @@map("developers")
+}
+
+model App {
+  id              String   @id @default(uuid())
+  developerId     String
+  name            String
+  slug            String   @unique
+  description     String   @db.Text
+  longDescription String?  @db.Text
+  category        String
+  tags            String[]
+  version         String   @default("1.0.0")
+  status          String   @default("draft") // draft | pending | reviewing | approved | rejected | published | suspended
+  accessLevel     String   @default("private") // public | private | premium | enterprise
+  licenseType     String   @default("closed_source") // open_source | closed_source | commercial | custom
+  pricing         Json     // Pricing
+  sourceCode      String?  @db.Text
+  repository      String?
+  icon            String?
+  screenshots     String[]
+  video           String?
+  documentation  String?  @db.Text
+  requirements    String[]
+  features        String[]
+  changelog       String?  @db.Text
+  licenseKey      String?
+  usageTokens     Int?
+  totalDownloads Int      @default(0)
+  totalRevenue    Float    @default(0)
+  rating          Float    @default(0)
+  reviews         Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  versions        AppVersion[]
+  installations   AppInstallation[]
+  appReviews      AppReview[]
+  revenueShares   RevenueShare[]
+  scanResults     CodeScanResult[]
+
+  @@index([developerId])
+  @@index([status])
+  @@index([category])
+  @@index([slug])
+  @@map("apps")
+}
+
+model AppVersion {
+  id              String   @id @default(uuid())
+  appId           String
+  version         String
+  status          String   @default("draft") // draft | published | deprecated | archived
+  compatibility   String   @default("backward_compatible") // backward_compatible | breaking | major | minor | patch
+  changelog       String?  @db.Text
+  sourceCode      String   @db.Text
+  runtimeConfig   Json?
+  apiTokens       String[]
+  endpoints       String[]
+  isStable        Boolean  @default(false)
+  isDefault        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  publishedAt     DateTime?
+  deprecatedAt    DateTime?
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  appTokens       AppToken[]
+
+  @@unique([appId, version])
+  @@index([appId])
+  @@index([status])
+  @@map("app_versions")
+}
+
+model AppToken {
+  id                String   @id @default(uuid())
+  appId             String
+  version           String
+  token             String   @unique
+  name              String
+  permissions       String[]
+  rateLimit         Json     // RateLimit
+  isActive          Boolean  @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  appVersion        AppVersion @relation(fields: [appId, version], references: [appId, version], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([token])
+  @@index([isActive])
+  @@map("app_tokens")
+}
+
+model AppInstance {
+  id              String   @id @default(uuid())
+  appId           String
+  developerId     String
+  version         String
+  status          String   @default("pending") // pending | running | stopped | error
+  containerId     String?
+  runtimeConfig   Json     // RuntimeConfig
+  resourceUsage   Json     // ResourceUsage
+  endpoint        String   @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  metrics         RuntimeMetrics[]
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([status])
+  @@map("app_instances")
+}
+
+model RuntimeMetrics {
+  id              String   @id @default(uuid())
+  instanceId     String
+  cpu             Float
+  memory          Float
+  storage         Float
+  requests        Int      @default(0)
+  errors          Int      @default(0)
+  latency         Float
+  uptime          Int
+  timestamp       DateTime @default(now())
+
+  // Relations
+  instance       AppInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@index([timestamp])
+  @@map("runtime_metrics")
+}
+
+model DeveloperWallet {
+  id              String   @id @default(uuid())
+  developerId     String   @unique
+  balance         Float    @default(0)
+  currency        String   @default("USD")
+  pendingBalance  Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalWithdrawn  Float    @default(0)
+  lastUpdated     DateTime @default(now())
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@index([developerId])
+  @@map("developer_wallets")
+}
+
+model RevenueShare {
+  id                String   @id @default(uuid())
+  transactionId     String
+  appId             String
+  developerId       String
+  userId            String
+  amount            Float
+  currency          String   @default("USD")
+  developerShare    Float
+  platformShare     Float
+  developerPercentage Float
+  platformPercentage Float
+  type              String   // subscription | one_time | usage | commission
+  status            String   @default("pending") // pending | processing | completed | failed
+  processedAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  app               App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("revenue_shares")
+}
+
+model Withdrawal {
+  id              String   @id @default(uuid())
+  developerId     String
+  amount          Float
+  currency        String   @default("USD")
+  walletAddress   String?
+  bankAccount     String?
+  paymentMethod   String   // crypto | bank | paypal | stripe
+  status          String   @default("pending") // pending | processing | completed | failed
+  processedAt     DateTime?
+  transactionHash String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  developer       Developer @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@index([developerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdrawals")
+}
+
+model CodeScanResult {
+  id              String   @id @default(uuid())
+  appId           String
+  version         String
+  status          String   @default("pending") // pending | scanning | completed | failed
+  riskLevel       String   @default("low") // low | medium | high | critical
+  issues          Json     // ScanIssue[]
+  score           Int      // 0-100
+  metadata        Json?
+  scannedAt       DateTime @default(now())
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([version])
+  @@index([riskLevel])
+  @@map("code_scan_results")
+}
+
+model SecurityAudit {
+  id              String   @id @default(uuid())
+  appId           String
+  developerId     String
+  action          String   // publish | update | delete | approve | reject
+  scanResultId    String?
+  riskLevel       String   @default("low") // low | medium | high | critical
+  approved        Boolean  @default(false)
+  approvedBy      String?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([appId])
+  @@index([developerId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("security_audits")
+}
+
+model AppReview {
+  id              String   @id @default(uuid())
+  appId           String
+  userId          String
+  rating          Int      // 1-5
+  title           String?
+  comment         String?  @db.Text
+  status          String   @default("pending") // pending | approved | rejected
+  helpful         Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([userId])
+  @@index([status])
+  @@index([rating])
+  @@map("app_reviews")
+}
+
+model AppInstallation {
+  id              String   @id @default(uuid())
+  appId           String
+  userId          String
+  version         String
+  instanceId      String?
+  status          String   @default("installed") // installed | running | stopped | uninstalled
+  installedAt     DateTime @default(now())
+  lastUsedAt      DateTime?
+
+  // Relations
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([userId])
+  @@index([status])
+  @@map("app_installations")
 }
 

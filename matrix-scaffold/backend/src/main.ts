@@ -7159,8 +7159,28 @@ const start = async () => {
       await initializePhase8_3(server)
       logInfo('✅ Phase 8.3 - Enterprise Enhancements initialized (100%)')
     } catch (error) {
-      logError(error as Error, { context: 'Phase 8.2 initialization' })
-      logInfo('⚠️ Phase 8.2 not available, continuing without it')
+      logError(error as Error, { context: 'Phase 8.3 initialization' })
+      logInfo('⚠️ Phase 8.3 not available, continuing without it')
+    }
+
+    // Phase 8.4: Initialize Developer Marketplace & AI Runtime
+    try {
+      const { initializePhase8_4 } = await import('./phase8_4/index')
+      await initializePhase8_4(server)
+      logInfo('✅ Phase 8.4 - Developer Marketplace & AI Runtime initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 8.4 initialization' })
+      logInfo('⚠️ Phase 8.4 not available, continuing without it')
+    }
+
+    // Phase 8.5: Initialize Matrix Intelligence Federation & Internal Economy
+    try {
+      const { initializePhase8_5 } = await import('./phase8_5/index')
+      await initializePhase8_5(server)
+      logInfo('✅ Phase 8.5 - Matrix Intelligence Federation & Internal Economy initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 8.5 initialization' })
+      logInfo('⚠️ Phase 8.5 not available, continuing without it')
     }
 
     logInfo('✅ Matrix Platform started successfully')
