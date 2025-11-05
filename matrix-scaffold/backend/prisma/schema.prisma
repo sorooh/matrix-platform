@@ -3112,3 +3112,398 @@ model ContractAddendum {
   @@index([type])
   @@map("contract_addendums")
 }
+
+// Phase 9.3: Professional Enhancements & Global Competition Features
+
+model ScalingRule {
+  id              String   @id @default(uuid())
+  name            String
+  metric          String   // cpu | memory | network | requests | latency | cost
+  threshold       Float
+  action          String   // scale_up | scale_down | scale_out | scale_in | no_action
+  minInstances    Int      @default(1)
+  maxInstances    Int      @default(100)
+  cooldownPeriod  Int      @default(300) // seconds
+  strategy        String   // aggressive | balanced | conservative | cost_optimized
+  isActive        Boolean  @default(true)
+
+  @@index([metric])
+  @@index([isActive])
+  @@map("scaling_rules")
+}
+
+model ScalingEvent {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  metric          String
+  currentValue    Float
+  threshold       Float
+  action          String
+  instancesBefore Int
+  instancesAfter   Int
+  costImpact      Float
+  triggeredAt     DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([metric])
+  @@index([triggeredAt])
+  @@map("scaling_events")
+}
+
+model ResourceOptimization {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  currentUsage    Json     // { cpu, memory, network, cost }
+  recommendedUsage Json    // { cpu, memory, network, cost }
+  savings         Float
+  confidence      Int      @default(0) // 0-100
+  generatedAt     DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([generatedAt])
+  @@map("resource_optimizations")
+}
+
+model Backup {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  type            String   // full | incremental | differential | snapshot
+  status          String   @default("pending") // pending | in_progress | completed | failed
+  size            BigInt   @default(0) // bytes
+  location        String
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+  expiresAt       DateTime
+  metadata        Json?
+
+  @@index([resourceId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("backups")
+}
+
+model Recovery {
+  id              String   @id @default(uuid())
+  backupId        String
+  resourceId      String
+  resourceType    String
+  targetRegion    String
+  pointInTime     DateTime
+  status          String   @default("pending") // pending | in_progress | completed | failed
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  rto             Int      // Recovery Time Objective (minutes)
+  rpo             Int      // Recovery Point Objective (minutes)
+
+  @@index([backupId])
+  @@index([resourceId])
+  @@index([status])
+  @@map("recoveries")
+}
+
+model Failover {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  fromRegion      String
+  toRegion        String
+  status          String   @default("pending") // pending | in_progress | completed | failed
+  triggeredAt     DateTime @default(now())
+  completedAt     DateTime?
+  rto             Int      // Recovery Time Objective (minutes)
+
+  @@index([resourceId])
+  @@index([status])
+  @@map("failovers")
+}
+
+model ComplianceReport {
+  id              String   @id @default(uuid())
+  type            String   // monthly | quarterly | annual | ad_hoc
+  standard        String
+  region          String
+  periodStart     DateTime
+  periodEnd       DateTime
+  score           Int      @default(0) // 0-100
+  status          String   @default("pending") // compliant | non_compliant | pending
+  breaches        Int      @default(0)
+  generatedAt     DateTime @default(now())
+  reportUrl       String?
+
+  @@index([standard])
+  @@index([region])
+  @@index([generatedAt])
+  @@map("compliance_reports")
+}
+
+model PrivacyImpactAssessment {
+  id              String   @id @default(uuid())
+  projectId       String
+  projectName     String
+  dataTypes       String[]
+  riskLevel       String   // low | medium | high | critical
+  mitigation      String[]
+  status          String   @default("pending") // pending | approved | rejected
+  assessedAt      DateTime @default(now())
+
+  @@index([projectId])
+  @@index([riskLevel])
+  @@index([status])
+  @@map("privacy_impact_assessments")
+}
+
+model DataSubjectRequest {
+  id              String   @id @default(uuid())
+  userId          String
+  right           String   // access | rectification | erasure | portability | objection | restriction
+  status          String   @default("pending") // pending | in_progress | completed | rejected
+  requestedAt     DateTime @default(now())
+  completedAt     DateTime?
+  response        String?  @db.Text
+
+  @@index([userId])
+  @@index([right])
+  @@index([status])
+  @@map("data_subject_requests")
+}
+
+model ConsentRecord {
+  id              String   @id @default(uuid())
+  userId          String
+  purpose         String
+  status          String   @default("granted") // granted | withdrawn | pending | expired
+  grantedAt       DateTime?
+  withdrawnAt     DateTime?
+  expiresAt       DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@map("consent_records")
+}
+
+model BreachNotification {
+  id              String   @id @default(uuid())
+  breachId        String
+  authority       String
+  notifiedAt      DateTime @default(now())
+  notificationMethod String // email | portal | api
+  response        String?  @db.Text
+
+  @@index([breachId])
+  @@index([notifiedAt])
+  @@map("breach_notifications")
+}
+
+model Prediction {
+  id              String   @id @default(uuid())
+  type            String   // user_behavior | resource_demand | cost | performance | anomaly
+  target          String
+  value           Float
+  confidence      Int      @default(0) // 0-100
+  confidenceLevel String   // low | medium | high | very_high
+  predictedAt     DateTime @default(now())
+  actualValue     Float?
+  accuracy        Float?
+
+  @@index([type])
+  @@index([target])
+  @@index([predictedAt])
+  @@map("predictions")
+}
+
+model Forecast {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  metric          String
+  predictions     Json     // { date, value, confidence }[]
+  generatedAt     DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([generatedAt])
+  @@map("forecasts")
+}
+
+model AnomalyDetection {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  type            String   // spike | drop | pattern_change | outlier
+  metric          String
+  currentValue    Float
+  expectedValue   Float
+  deviation       Float
+  severity        String   // low | medium | high | critical
+  detectedAt      DateTime @default(now())
+  description     String   @db.Text
+
+  @@index([resourceId])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("anomaly_detections")
+}
+
+model CostAnalysis {
+  id              String   @id @default(uuid())
+  resourceId      String
+  resourceType    String
+  periodStart     DateTime
+  periodEnd       DateTime
+  currentCost     Float
+  optimizedCost   Float
+  savings         Float
+  savingsPercentage Float
+  recommendations Json     // CostRecommendation[]
+  generatedAt     DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([generatedAt])
+  @@map("cost_analyses")
+}
+
+model CostBudget {
+  id              String   @id @default(uuid())
+  name            String
+  amount          Float
+  period          String   // daily | weekly | monthly | yearly
+  alertThreshold  Int      @default(80) // percentage
+  currentSpend    Float    @default(0)
+  alerts          Json     // CostAlert[]
+  createdAt       DateTime @default(now())
+
+  @@index([name])
+  @@index([period])
+  @@map("cost_budgets")
+}
+
+model CostAlert {
+  id              String   @id @default(uuid())
+  budgetId        String
+  type            String   // budget_exceeded | unusual_spend | resource_optimization | savings_opportunity
+  message         String   @db.Text
+  severity        String   // low | medium | high | critical
+  triggeredAt     DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([budgetId])
+  @@index([severity])
+  @@index([triggeredAt])
+  @@map("cost_alerts")
+}
+
+model Benchmark {
+  id              String   @id @default(uuid())
+  name            String
+  metric          String   // response_time | throughput | availability | error_rate | cost
+  ourValue        Float
+  competitorValue Float
+  competitorName  String
+  difference      Float
+  differencePercentage Float
+  benchmarkedAt   DateTime @default(now())
+
+  @@index([metric])
+  @@index([benchmarkedAt])
+  @@map("benchmarks")
+}
+
+model ABTest {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  status          String   @default("draft") // draft | running | paused | completed | archived
+  variants        Json     // ABTestVariant[]
+  trafficSplit    Int      @default(50) // percentage to variant A
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  results         Json?    // ABTestResults
+
+  @@index([status])
+  @@index([startDate])
+  @@map("ab_tests")
+}
+
+model FeatureFlag {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  description     String   @db.Text
+  status          String   @default("disabled") // enabled | disabled | gradual_rollout
+  rolloutPercentage Int     @default(0) // 0-100
+  targetUsers     String[] // user IDs
+  enabledAt       DateTime?
+  disabledAt      DateTime?
+
+  @@index([status])
+  @@index([name])
+  @@map("feature_flags")
+}
+
+model Competitor {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  type            String   // direct | indirect | potential
+  website         String?
+  description     String   @db.Text
+  features        String[]
+  pricing         Json     // { model, price, currency }
+  marketShare     Float    @default(0) // percentage
+  strengths       String[]
+  weaknesses      String[]
+  lastUpdated     DateTime @default(now())
+
+  @@index([type])
+  @@index([lastUpdated])
+  @@map("competitors")
+}
+
+model MarketTrendAnalysis {
+  id              String   @id @default(uuid())
+  market          String
+  trend           String   // growing | stable | declining
+  growthRate      Float
+  totalSize       Float    // market size in USD
+  ourPosition     Float    // percentage
+  competitors     String[]
+  insights        String[]
+  analyzedAt      DateTime @default(now())
+
+  @@index([market])
+  @@index([analyzedAt])
+  @@map("market_trend_analyses")
+}
+
+model FeatureGap {
+  id              String   @id @default(uuid())
+  competitorId    String
+  competitorName  String
+  feature         String
+  type            String   // missing | inferior | superior
+  description     String   @db.Text
+  priority        String   // low | medium | high | critical
+  impact          Json     // { users, revenue }
+  detectedAt      DateTime @default(now())
+
+  @@index([competitorId])
+  @@index([priority])
+  @@index([detectedAt])
+  @@map("feature_gaps")
+}
+
+model PricingComparison {
+  id              String   @id @default(uuid())
+  competitorId    String
+  competitorName   String
+  ourPrice        Float
+  competitorPrice Float
+  difference      Float
+  differencePercentage Float
+  recommendation  String   // match | lower | higher | maintain
+  comparedAt      DateTime @default(now())
+
+  @@index([competitorId])
+  @@index([comparedAt])
+  @@map("pricing_comparisons")
+}
