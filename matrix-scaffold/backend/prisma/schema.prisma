@@ -4064,3 +4064,291 @@ model PartnerRiskAssessment {
   @@index([assessedAt])
   @@map("partner_risk_assessments")
 }
+
+// Phase 10.2: Collective Intelligence & Cross-Universe Synchronization
+
+model SyncNode {
+  id              String   @id @default(uuid())
+  type            String   // matrix_core | external_ai | private_instance | partner_system
+  name            String
+  endpoint        String
+  publicKey       String   @db.Text
+  encryptionLevel String   @default("standard") // none | standard | high | maximum
+  capabilities    String[]
+  status          String   @default("pending") // pending | connected | syncing | error | disconnected
+  lastSync        DateTime @default(now())
+  syncCount       Int      @default(0)
+  metadata        Json?
+
+  @@index([type])
+  @@index([status])
+  @@map("sync_nodes")
+}
+
+model ExchangeChannel {
+  id              String   @id @default(uuid())
+  nodeAId         String
+  nodeBId         String
+  encryptionLevel String   @default("standard")
+  sharedKey       String?  @db.Text
+  status          String   @default("active") // active | paused | closed
+  packetsExchanged Int    @default(0)
+  lastExchange    DateTime @default(now())
+
+  @@index([nodeAId])
+  @@index([nodeBId])
+  @@map("exchange_channels")
+}
+
+model KnowledgePacket {
+  id              String   @id @default(uuid())
+  sourceNodeId    String
+  targetNodeId    String
+  type            String   // data | algorithm | experience | model | pattern | insight
+  content         Json     // { encrypted, data, hash }
+  metadata        Json     // { timestamp, version, priority, tags }
+  exchangedAt     DateTime @default(now())
+
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([type])
+  @@map("knowledge_packets")
+}
+
+model KnowledgeEntity {
+  id              String   @id @default(uuid())
+  category        String   // concept | algorithm | pattern | insight | experience | model | data
+  title           String
+  content         Json
+  quality         String   @default("medium") // low | medium | high | excellent
+  qualityScore    Int      @default(0) // 0-100
+  status          String   @default("pending") // pending | verified | rejected | archived
+  sourceNodeId    String
+  tags            String[]
+  relationships   String[] // IDs of related entities
+  coordinates     Json     // { x, y, z }
+  usageCount      Int      @default(0)
+  lastUsed        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([quality])
+  @@index([status])
+  @@index([sourceNodeId])
+  @@map("knowledge_entities")
+}
+
+model KnowledgeRelationship {
+  id              String   @id @default(uuid())
+  sourceEntityId  String
+  targetEntityId  String
+  relationshipType String   // dependency | similarity | opposite | enhances | conflicts | requires
+  strength        Int      @default(0) // 0-100
+  createdAt       DateTime @default(now())
+
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@map("knowledge_relationships")
+}
+
+model KnowledgeGraph {
+  id              String   @id @default(uuid())
+  name            String
+  entities        String[] // Entity IDs
+  relationships   String[] // Relationship IDs
+  version         String   @default("1.0.0")
+  lastUpdated      DateTime @default(now())
+
+  @@map("knowledge_graphs")
+}
+
+model KnowledgeEvaluation {
+  id              String   @id @default(uuid())
+  entityId        String
+  evaluatorNodeId String
+  qualityScore    Int      @default(0) // 0-100
+  factors         Json     // { accuracy, relevance, novelty, usefulness }
+  evaluatedAt     DateTime @default(now())
+
+  @@index([entityId])
+  @@index([evaluatorNodeId])
+  @@map("knowledge_evaluations")
+}
+
+model GovernanceProposal {
+  id              String   @id @default(uuid())
+  type            String   // code_change | policy_change | architecture_change | feature_addition | security_update
+  title           String
+  description     String   @db.Text
+  proposedBy      String   // AI ID
+  status          String   @default("voting") // draft | voting | approved | rejected | implemented
+  consensusThreshold Int  @default(75) // 0-100
+  currentConsensus Int    @default(0) // 0-100
+  createdAt       DateTime @default(now())
+  votingDeadline  DateTime
+  implementedAt   DateTime?
+
+  @@index([status])
+  @@index([proposedBy])
+  @@map("governance_proposals")
+}
+
+model Vote {
+  id              String   @id @default(uuid())
+  proposalId      String
+  voterId         String   // AI ID
+  decision        String   // approve | reject | abstain
+  reasoning       String?  @db.Text
+  weight          Int      @default(50) // 0-100
+  votedAt         DateTime @default(now())
+
+  @@index([proposalId])
+  @@index([voterId])
+  @@map("votes")
+}
+
+model AICouncilMember {
+  id              String   @id @default(uuid())
+  aiId            String   @unique
+  name            String
+  role            String   // core | specialist | observer | contributor
+  votingWeight    Int      @default(50) // 0-100
+  reputation      Int      @default(50) // 0-100
+  votesCount      Int      @default(0)
+  joinedAt        DateTime @default(now())
+  lastActive      DateTime @default(now())
+
+  @@index([role])
+  @@index([votingWeight])
+  @@map("ai_council_members")
+}
+
+model LearningEvent {
+  id              String   @id @default(uuid())
+  type            String   // error | improvement | optimization | success | failure
+  source          String   // matrix_core | external_instance | user_feedback | automated_test
+  instanceId      String
+  component       String
+  description     String   @db.Text
+  context         Json
+  timestamp       DateTime @default(now())
+  status          String   @default("pending") // pending | analyzed | applied | rejected
+
+  @@index([type])
+  @@index([source])
+  @@index([instanceId])
+  @@index([timestamp])
+  @@map("learning_events")
+}
+
+model MetaLearningPattern {
+  id              String   @id @default(uuid())
+  pattern         String
+  description     String   @db.Text
+  frequency       Int      @default(1)
+  impact          String   @default("medium") // low | medium | high | critical
+  solutions       String[]
+  learnedFrom     String[] // Event IDs
+  appliedTo       String[] // Instance IDs
+  effectiveness   Int      @default(0) // 0-100
+  createdAt       DateTime @default(now())
+  lastApplied     DateTime @default(now())
+
+  @@index([impact])
+  @@index([frequency])
+  @@map("meta_learning_patterns")
+}
+
+model LearningCycle {
+  id              String   @id @default(uuid())
+  cycleNumber     Int      @unique
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  eventsAnalyzed  Int      @default(0)
+  patternsLearned Int      @default(0)
+  improvementsApplied Int @default(0)
+  performanceGain Float   @default(0) // Percentage
+  status          String   @default("running") // running | completed | failed
+
+  @@index([status])
+  @@index([startDate])
+  @@map("learning_cycles")
+}
+
+model EvolutionaryOptimization {
+  id              String   @id @default(uuid())
+  generation      Int
+  population      Json     // { instanceId, fitness, traits }[]
+  mutations       Int      @default(0)
+  crossovers      Int      @default(0)
+  bestFitness     Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([generation])
+  @@index([bestFitness])
+  @@map("evolutionary_optimizations")
+}
+
+model UniverseInstance {
+  id              String   @id @default(uuid())
+  type            String   // matrix_core | private_cloud | enterprise | partner | research
+  name            String
+  endpoint        String
+  version         String
+  status          String   @default("pending") // pending | syncing | synced | conflict | error
+  lastSync        DateTime @default(now())
+  syncCount       Int      @default(0)
+  conflicts       Int      @default(0)
+  metadata        Json?
+
+  @@index([type])
+  @@index([status])
+  @@map("universe_instances")
+}
+
+model SyncOperation {
+  id              String   @id @default(uuid())
+  sourceInstanceId String
+  targetInstanceId String
+  type            String   // knowledge | experience | models | config | full
+  data            Json
+  timestamp       DateTime @default(now())
+  status          String   @default("pending") // pending | syncing | synced | conflict | error
+  conflictResolution String? @db.Text
+  syncedAt        DateTime?
+
+  @@index([sourceInstanceId])
+  @@index([targetInstanceId])
+  @@index([status])
+  @@map("sync_operations")
+}
+
+model TemporalSyncState {
+  id              String   @id @default(uuid())
+  instanceId      String
+  timestamp       DateTime @default(now())
+  stateHash       String
+  previousStateHash String?
+  conflicts       String[] // Operation IDs with conflicts
+  resolved        Boolean  @default(false)
+
+  @@index([instanceId])
+  @@index([timestamp])
+  @@map("temporal_sync_states")
+}
+
+model SyncConflict {
+  id              String   @id @default(uuid())
+  operationId     String
+  sourceState     Json
+  targetState     Json
+  conflictType    String   // value | structure | timestamp | version
+  resolution      String?  // source_wins | target_wins | merge | manual
+  resolvedAt      DateTime?
+  resolvedBy      String?
+
+  @@index([operationId])
+  @@index([resolution])
+  @@map("sync_conflicts")
+}
