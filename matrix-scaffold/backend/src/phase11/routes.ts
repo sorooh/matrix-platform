@@ -7,13 +7,32 @@
 import { FastifyInstance } from 'fastify'
 import { logger, logError } from '../../config/logger'
 import { advancedAPIPlatform } from '../api/advancedAPIPlatform'
+import { apiDocumentationAutoGen } from '../api/apiDocumentation'
+import { advancedAPIVersioning } from '../api/apiVersioning'
 import { advancedObservability } from '../observability/advancedObservability'
+import { advancedLogAggregation } from '../observability/logAggregation'
+import { advancedMetricsDashboard } from '../observability/metricsDashboard'
 import { advancedSecurityPlatform } from '../security/advancedSecurityPlatform'
+import { siemIntegration } from '../security/siem'
+import { securityOrchestration } from '../security/securityOrchestration'
+import { advancedIAM } from '../security/advancedIAM'
 import { advancedDevOps } from '../devops/advancedDevOps'
+import { gitOps } from '../devops/gitops'
+import { infrastructureAsCode } from '../devops/infrastructureAsCode'
+import { serviceMesh } from '../devops/serviceMesh'
 import { advancedDataPlatform } from '../data/advancedDataPlatform'
+import { dataWarehouseIntegration } from '../data/dataWarehouse'
+import { etlPipelines } from '../data/etlPipelines'
+import { realTimeDataProcessing } from '../data/realtimeDataProcessing'
 import { advancedMLPlatform } from '../ml/advancedMLPlatform'
+import { mlOps } from '../ml/mlops'
+import { modelServing } from '../ml/modelServing'
+import { modelRegistry } from '../ml/modelRegistry'
 import { advancedIntegrationPlatform } from '../integration/advancedIntegrationPlatform'
 import { advancedBusinessPlatform } from '../business/advancedBusinessPlatform'
+import { customerSuccessPlatform } from '../business/customerSuccess'
+import { revenueRecognitionSystem } from '../business/revenueRecognition'
+import { pricingOptimization } from '../business/pricingOptimization'
 
 export async function registerPhase11Routes(server: FastifyInstance) {
   // Advanced API Platform
@@ -109,6 +128,78 @@ export async function registerPhase11Routes(server: FastifyInstance) {
     } catch (error) {
       logError(error as Error, { context: 'POST /api/phase11/business/customer-success' })
       return reply.status(500).send({ error: 'Failed to track customer success' })
+    }
+  })
+
+  // API Documentation
+  server.post('/api/phase11/api/documentation', async (request, reply) => {
+    try {
+      const { endpoint, method, description, parameters, responses } = request.body as any
+      const doc = await apiDocumentationAutoGen.generateDocumentation(endpoint, method, description, parameters, responses)
+      return reply.send({ success: true, doc })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/api/documentation' })
+      return reply.status(500).send({ error: 'Failed to generate documentation' })
+    }
+  })
+
+  // SIEM
+  server.post('/api/phase11/security/siem/event', async (request, reply) => {
+    try {
+      const { type, severity, source, target, data } = request.body as any
+      const event = await siemIntegration.sendEvent(type, severity, source, target, data)
+      return reply.send({ success: true, event })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/security/siem/event' })
+      return reply.status(500).send({ error: 'Failed to send SIEM event' })
+    }
+  })
+
+  // GitOps
+  server.post('/api/phase11/devops/gitops/config', async (request, reply) => {
+    try {
+      const { repository, branch, path, environment, autoSync, syncInterval } = request.body as any
+      const config = await gitOps.createConfig(repository, branch, path, environment, autoSync, syncInterval)
+      return reply.send({ success: true, config })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/devops/gitops/config' })
+      return reply.status(500).send({ error: 'Failed to create GitOps config' })
+    }
+  })
+
+  // Data Warehouse
+  server.post('/api/phase11/data/warehouse', async (request, reply) => {
+    try {
+      const { name, provider, connectionString, schema } = request.body as any
+      const warehouse = await dataWarehouseIntegration.createWarehouse(name, provider, connectionString, schema)
+      return reply.send({ success: true, warehouse })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/data/warehouse' })
+      return reply.status(500).send({ error: 'Failed to create warehouse' })
+    }
+  })
+
+  // MLOps
+  server.post('/api/phase11/ml/mlops/pipeline', async (request, reply) => {
+    try {
+      const { name, stages } = request.body as any
+      const pipeline = await mlOps.createPipeline(name, stages)
+      return reply.send({ success: true, pipeline })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/ml/mlops/pipeline' })
+      return reply.status(500).send({ error: 'Failed to create ML pipeline' })
+    }
+  })
+
+  // Customer Success
+  server.post('/api/phase11/business/customer-success/track', async (request, reply) => {
+    try {
+      const { customerId, healthScore, engagementScore, adoptionScore } = request.body as any
+      const customer = await customerSuccessPlatform.trackCustomer(customerId, healthScore, engagementScore, adoptionScore)
+      return reply.send({ success: true, customer })
+    } catch (error) {
+      logError(error as Error, { context: 'POST /api/phase11/business/customer-success/track' })
+      return reply.status(500).send({ error: 'Failed to track customer' })
     }
   })
 }
