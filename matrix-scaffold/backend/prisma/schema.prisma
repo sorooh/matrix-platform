@@ -2456,3 +2456,209 @@ model PredictiveForecast {
   @@index([generatedAt])
   @@map("predictive_forecasts")
 }
+
+// Phase 9: Global Deployment & Domains Network
+
+model GlobalDeployment {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // frontend | backend | database | cdn | full_stack
+  provider        String   // vercel | firebase | cloudflare | aws | gcp | azure | custom
+  region          String   // EU | US | ASIA | AFRICA | OCEANIA
+  status          String   @default("pending") // pending | deploying | deployed | failed | rolled_back
+  config          Json     // DeploymentConfig
+  endpoints       Json     // DeploymentEndpoints
+  deployedAt      DateTime?
+  failedAt        DateTime?
+  error           String?  @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([region])
+  @@index([provider])
+  @@index([status])
+  @@map("global_deployments")
+}
+
+model Domain {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  status          String   @default("pending") // pending | active | expired | suspended
+  provider        String   // cloudflare | godaddy | namecheap | custom
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([provider])
+  @@map("domains")
+}
+
+model SSLCertificate {
+  id              String   @id @default(uuid())
+  domainId        String
+  status          String   @default("pending") // pending | issued | expired | revoked
+  issuer          String
+  issuedAt        DateTime
+  expiresAt       DateTime
+  autoRenew       Boolean  @default(true)
+  certificateChain String?  @db.Text
+  privateKey      String?  @db.Text // Encrypted
+  createdAt       DateTime @default(now())
+
+  @@index([domainId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("ssl_certificates")
+}
+
+model DNSRecord {
+  id              String   @id @default(uuid())
+  domainId        String
+  type            String   // A | AAAA | CNAME | MX | TXT | NS | SRV
+  name            String
+  value           String
+  ttl             Int      @default(3600)
+  priority        Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([domainId])
+  @@index([type])
+  @@map("dns_records")
+}
+
+model EdgeNode {
+  id              String   @id @default(uuid())
+  region          String
+  provider        String   // cloudflare | fastly | aws | gcp
+  status          String   @default("active") // active | inactive | maintenance | overloaded
+  location        Json     // { city, country, latitude, longitude }
+  performance     Json     // { latency, throughput, errorRate, uptime }
+  lastChecked     DateTime @default(now())
+
+  @@index([region])
+  @@index([status])
+  @@map("edge_nodes")
+}
+
+model CDNConfig {
+  id              String   @id @default(uuid())
+  domainId        String
+  cacheStrategy   String   // cache_all | cache_static | cache_dynamic | no_cache
+  cacheTTL        Int      @default(3600)
+  compression     Boolean  @default(true)
+  minification    Boolean  @default(true)
+  edgeNodes       String[]
+  routingRules    Json     // RoutingRule[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([domainId])
+  @@map("cdn_configs")
+}
+
+model GlobalMonitor {
+  id              String   @id @default(uuid())
+  region          String
+  deploymentId    String
+  status          String   @default("healthy") // healthy | degraded | down | recovering
+  metrics         Json     // MonitorMetrics
+  lastChecked     DateTime @default(now())
+
+  @@index([region])
+  @@index([deploymentId])
+  @@index([status])
+  @@map("global_monitors")
+}
+
+model Incident {
+  id              String   @id @default(uuid())
+  region          String
+  deploymentId    String
+  severity        String   // low | medium | high | critical
+  status          String   @default("open") // open | investigating | resolved
+  description     String   @db.Text
+  affectedServices String[]
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  resolution      String?  @db.Text
+
+  @@index([region])
+  @@index([status])
+  @@index([severity])
+  @@map("incidents")
+}
+
+model RegionalConfig {
+  id              String   @id @default(uuid())
+  region          String   @unique
+  currency        String   // USD | EUR | AED | CNY | GBP | JPY | SAR | INR
+  language        String   // en | ar | nl | zh | fr | de | es | ja
+  timezone        String   // UTC | America/New_York | Europe/London | Asia/Dubai | Asia/Shanghai | Asia/Tokyo
+  taxRegion       String   // EU | US | GCC | ASIA | OTHER
+  taxRate         Float
+  pricing         Json     // RegionalPricing
+  localization    Json     // Localization
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([region])
+  @@map("regional_configs")
+}
+
+model PublicAPIKey {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  type            String   // developer | partner | public | trial
+  status          String   @default("active") // active | suspended | revoked
+  userId          String?
+  partnerId       String?
+  name            String
+  description     String?  @db.Text
+  rateLimit       Json     // { requestsPerMinute, requestsPerHour, requestsPerDay }
+  permissions     String[]
+  usage           Json     // { totalRequests, successfulRequests, failedRequests, totalTokens, totalCost }
+  createdAt       DateTime @default(now())
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([status])
+  @@index([type])
+  @@map("public_api_keys")
+}
+
+model PublicUsageStats {
+  id              String   @id @default(uuid())
+  keyId           String
+  date            DateTime
+  requests        Int      @default(0)
+  successfulRequests Int   @default(0)
+  failedRequests  Int      @default(0)
+  tokens          Int      @default(0)
+  cost            Float    @default(0)
+  latency         Float    @default(0) // average milliseconds
+  errorRate       Float    @default(0) // percentage
+
+  @@index([keyId])
+  @@index([date])
+  @@map("public_usage_stats")
+}
+
+model PublicPerformanceReport {
+  id              String   @id @default(uuid())
+  keyId           String
+  period          String   // daily | weekly | monthly
+  startDate       DateTime
+  endDate         DateTime
+  stats           Json     // PerformanceStats
+  generatedAt     DateTime @default(now())
+
+  @@index([keyId])
+  @@index([period])
+  @@index([generatedAt])
+  @@map("public_performance_reports")
+}
