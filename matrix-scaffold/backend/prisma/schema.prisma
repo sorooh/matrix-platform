@@ -925,3 +925,273 @@ model PartnerAuditLog {
   @@map("partner_audit_logs")
 }
 
+// Phase 8.3: Enterprise Enhancements
+
+model Webhook {
+  id              String   @id @default(uuid())
+  userId          String?
+  partnerId       String?
+  url             String
+  events          String[] // WebhookEventType[]
+  secret          String?
+  active          Boolean  @default(true)
+  retries         Int      @default(3)
+  timeout         Int      @default(30000)
+  headers         Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  deliveries      WebhookDelivery[]
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([active])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id              String   @id @default(uuid())
+  webhookId       String
+  event           Json     // WebhookEvent
+  status          String   // pending | delivered | failed
+  attempts        Int      @default(0)
+  responseCode    Int?
+  responseBody    String?  @db.Text
+  deliveredAt     DateTime?
+  failedAt        DateTime?
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  // Relations
+  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+model TaxRate {
+  id              String   @id @default(uuid())
+  region          String   // EU | US | CA | UK | AU | SG | IN | OTHER
+  country         String
+  state           String?
+  type            String   // vat | gst | sales_tax | custom
+  rate            Float    // Percentage
+  name            String
+  description     String?  @db.Text
+  effectiveFrom   DateTime @default(now())
+  effectiveTo     DateTime?
+  isActive        Boolean  @default(true)
+
+  @@index([country])
+  @@index([state])
+  @@index([type])
+  @@index([isActive])
+  @@map("tax_rates")
+}
+
+model TaxExemption {
+  id              String   @id @default(uuid())
+  userId          String
+  country         String
+  reason          String   @db.Text
+  taxNumber       String?
+  validFrom       DateTime @default(now())
+  validTo         DateTime?
+  isActive        Boolean  @default(true)
+
+  @@index([userId])
+  @@index([country])
+  @@index([isActive])
+  @@map("tax_exemptions")
+}
+
+model Refund {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  userId          String
+  subscriptionId  String?
+  amount          Float
+  currency        String   @default("USD")
+  type            String   // full | partial | prorated
+  reason          String   // customer_request | duplicate_charge | fraudulent | service_issue | billing_error | other
+  status          String   @default("pending") // pending | processing | completed | failed | cancelled
+  description     String?  @db.Text
+  paymentProvider String   // stripe | paypal | crypto
+  paymentIntentId String?
+  refundId        String?
+  processedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  disputes        Dispute[]
+
+  @@index([invoiceId])
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("refunds")
+}
+
+model Dispute {
+  id              String   @id @default(uuid())
+  refundId        String
+  userId          String
+  reason          String   @db.Text
+  evidence        String[]
+  status          String   @default("open") // open | under_review | resolved | closed
+  resolution      String?  @db.Text
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+
+  // Relations
+  refund          Refund   @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+  @@index([refundId])
+  @@index([userId])
+  @@index([status])
+  @@map("disputes")
+}
+
+model SLADefinition {
+  id              String   @id @default(uuid())
+  tier            String   // free | pro | enterprise | custom
+  name            String
+  uptimeTarget    Float    // Percentage
+  latencyTarget    Float    // Milliseconds
+  throughputTarget Float    // Requests per second
+  errorRateTarget  Float    // Percentage
+  description     String?  @db.Text
+  isActive        Boolean  @default(true)
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("sla_definitions")
+}
+
+model SLAMetrics {
+  id              String   @id @default(uuid())
+  subscriptionId  String
+  userId          String
+  tier            String
+  periodStart     DateTime
+  periodEnd       DateTime
+  uptime          Float    // Percentage
+  latency         Float    // Average milliseconds
+  throughput      Float    // Requests per second
+  errorRate       Float    // Percentage
+  status          String   // met | at_risk | breached
+  breaches        Int      @default(0)
+  lastChecked     DateTime @default(now())
+
+  @@unique([subscriptionId, periodStart])
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([status])
+  @@map("sla_metrics")
+}
+
+model SLAAlert {
+  id              String   @id @default(uuid())
+  subscriptionId  String
+  userId          String
+  metric          String   // uptime | latency | throughput | error_rate
+  currentValue    Float
+  targetValue     Float
+  severity        String   // warning | critical
+  status          String   @default("open") // open | acknowledged | resolved
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([status])
+  @@index([severity])
+  @@map("sla_alerts")
+}
+
+model CurrencyConfig {
+  id                String   @id @default(uuid())
+  userId            String?
+  partnerId         String?
+  defaultCurrency   String   @default("USD")
+  supportedCurrencies String[] // Currency[]
+  autoConvert       Boolean  @default(true)
+  metadata          Json?
+
+  @@unique([userId])
+  @@unique([partnerId])
+  @@map("currency_configs")
+}
+
+model IPWhitelist {
+  id              String   @id @default(uuid())
+  userId          String
+  ip              String
+  description     String?  @db.Text
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("ip_whitelists")
+}
+
+model GeoBlockRule {
+  id              String   @id @default(uuid())
+  userId          String?
+  partnerId       String?
+  country         String
+  action          String   // allow | block | require_verification
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([country])
+  @@index([isActive])
+  @@map("geo_block_rules")
+}
+
+model SecurityAuditLog {
+  id              String   @id @default(uuid())
+  userId          String?
+  ip              String
+  country         String?
+  action          String
+  resource        String
+  status          String   // success | failed | blocked
+  reason          String?  @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([ip])
+  @@index([action])
+  @@index([status])
+  @@index([createdAt])
+  @@map("security_audit_logs")
+}
+
+model TwoFactorAuth {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  totpEnabled     Boolean  @default(false)
+  totpSecret      String?
+  smsEnabled      Boolean  @default(false)
+  smsPhoneNumber  String?
+  emailEnabled    Boolean  @default(false)
+  backupCodes     String[]
+  createdAt       DateTime @default(now())
+  verifiedAt      DateTime?
+
+  @@index([userId])
+  @@map("two_factor_auth")
+}
+

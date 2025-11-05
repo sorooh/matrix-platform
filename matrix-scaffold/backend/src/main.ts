@@ -7146,7 +7146,18 @@ const start = async () => {
     try {
       const { initializePhase8_2 } = await import('./phase8_2/index')
       await initializePhase8_2(server)
+      
       logInfo('✅ Phase 8.2 - Partner & Reseller Portal initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 8.2 initialization' })
+      logInfo('⚠️ Phase 8.2 not available, continuing without it')
+    }
+
+    // Phase 8.3: Initialize Enterprise Enhancements
+    try {
+      const { initializePhase8_3 } = await import('./phase8_3/index')
+      await initializePhase8_3(server)
+      logInfo('✅ Phase 8.3 - Enterprise Enhancements initialized (100%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 8.2 initialization' })
       logInfo('⚠️ Phase 8.2 not available, continuing without it')
