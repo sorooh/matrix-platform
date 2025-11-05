@@ -2,6 +2,106 @@
 
 All notable changes to the Matrix Platform will be documented in this file.
 
+## [8.1.0] - 2025-01-05
+
+### Added - Phase 8.1: AI Rental Dashboard & Client Panel (100% Complete)
+
+#### Client Portal UI
+- **Client Dashboard**: Overview of subscription, usage, instances, and recent invoices
+- **Multi-language Support**: English and Arabic with extensible language system
+- **Client Profile Management**: Update profile, preferences, and settings
+- **Session Management**: Track and manage active sessions
+
+#### Subscription Manager
+- **My Plan Page**: View current plan, limits, and upgrade/downgrade options
+- **Integration with Phase 8 Billing**: Full integration with Stripe, PayPal, Crypto
+- **Payment Status**: View payment status (Active, Past Due, Cancelled)
+- **Cancel/Pause Subscription**: Ability to cancel or pause subscriptions
+
+#### Billing & Invoices Center
+- **Invoice List**: View all invoices with status (Paid, Unpaid, Refunded)
+- **Download Invoices**: PDF download functionality
+- **Payment Methods**: View saved payment methods
+- **Transaction History**: Complete transaction history
+
+#### Usage Analytics
+- **Usage Dashboard**: Track API requests, tokens, and costs
+- **Usage by AI**: Breakdown by AI type (Nicholas, Surooh, Lida)
+- **Charts & Graphs**: Daily, weekly, monthly visualizations
+- **Usage Alerts**: Automatic alerts at 80%, 90%, and over limit
+- **Plan Upgrade Suggestions**: Recommendations based on usage
+
+#### AI Instances Manager
+- **Instance List**: View all private instances with status
+- **Instance Management**: Start, stop, restart instances
+- **View Logs**: Activity and usage logs per instance
+- **Create Instance**: Create new instances based on plan
+- **Delete/Freeze**: Remove or freeze unused instances
+
+#### Support & Ticketing
+- **Create Tickets**: Support tickets with priority and type selection
+- **Ticket Management**: Track ticket status (Open, In Progress, Resolved, Closed)
+- **Ticket Messages**: Communication with support team
+- **Admin Integration**: Tickets appear in admin dashboard
+
+#### Notifications & Communication Center
+- **In-App Notifications**: Real-time notifications in client panel
+- **Email Notifications**: Email alerts for billing, usage, system updates
+- **Multi-channel Support**: In-app, email (Telegram/Discord ready)
+- **Notification Preferences**: Customize notification settings
+
+#### Security & Client Access
+- **2FA Support**: Two-Factor Authentication with TOTP
+- **Password Management**: Change password functionality
+- **Session Management**: View and revoke active sessions
+- **API Key Management**: Create, revoke, renew API keys from client panel
+
+#### Admin View for Clients
+- **Client Summary**: Complete client overview with subscription, usage, instances
+- **Impersonate Client**: View client panel as admin (read-only or with permissions)
+- **Client Management**: Update subscriptions, suspend/activate accounts
+- **Client Search**: Search clients by name, email, invoice ID
+
+#### API Endpoints (25+ new endpoints)
+- Client Dashboard: 1 endpoint
+- Client Profile: 2 endpoints
+- Subscription Manager: 3 endpoints
+- Billing & Invoices: 3 endpoints
+- Usage Analytics: 2 endpoints
+- AI Instances: 6 endpoints
+- API Keys: 3 endpoints
+- Support Tickets: 4 endpoints
+- Sessions: 2 endpoints
+- Security (2FA): 6 endpoints
+- Admin Client View: 6 endpoints
+
+#### Database Tables (6 new tables)
+- ClientProfile
+- ClientSession
+- Ticket
+- ClientNotification
+- TwoFactorAuth
+
+#### Files Created
+- `src/client/clientPortal.ts`
+- `src/client/clientRoutes.ts`
+- `src/client/notifications.ts`
+- `src/client/security.ts`
+- `src/client/securityRoutes.ts`
+- `src/client/adminView.ts`
+- `src/client/adminRoutes.ts`
+- `src/tickets/ticketing.ts`
+- `src/phase8_1/index.ts`
+
+#### Statistics
+- **Total Files**: 9 files
+- **Total Lines of Code**: ~3,500+ lines
+- **Total API Endpoints**: 25+ endpoints
+- **Total Database Tables**: 6 tables
+- **Completion**: 100%
+
+---
+
 ## [8.0.0] - 2025-01-05
 
 ### Added - Phase 8: AI Rental & Commercial Deployment (100% Complete)

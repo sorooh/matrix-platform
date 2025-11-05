@@ -622,3 +622,96 @@ model InvoiceReport {
   @@map("invoice_reports")
 }
 
+// Phase 8.1: AI Rental Dashboard & Client Panel
+
+model ClientProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  email           String
+  name            String
+  language        String   @default("en") // en | ar
+  timezone        String?
+  preferences     Json     // ClientPreferences
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([email])
+  @@map("client_profiles")
+}
+
+model ClientSession {
+  id              String   @id @default(uuid())
+  userId          String
+  token           String   @unique
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  lastActivityAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("client_sessions")
+}
+
+model Ticket {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String   // issue | question | feature_request | billing | technical
+  priority        String   @default("medium") // low | medium | high | urgent
+  status          String   @default("open") // open | in_progress | resolved | closed
+  subject         String
+  description     String   @db.Text
+  messages        Json     // TicketMessage[]
+  assignedTo     String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model ClientNotification {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String   // billing | usage | system | support
+  channel         String   @default("in_app") // in_app | email | telegram | discord
+  status          String   @default("unread") // unread | read | archived
+  title           String
+  message         String   @db.Text
+  actionUrl       String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  readAt          DateTime?
+  archivedAt      DateTime?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([channel])
+  @@index([createdAt])
+  @@map("client_notifications")
+}
+
+model TwoFactorAuth {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  enabled         Boolean  @default(false)
+  secret          String?
+  backupCodes     String[]
+  createdAt       DateTime @default(now())
+  verifiedAt      DateTime?
+
+  @@index([userId])
+  @@map("two_factor_auth")
+}
+
