@@ -3507,3 +3507,319 @@ model PricingComparison {
   @@index([comparedAt])
   @@map("pricing_comparisons")
 }
+
+// Phase 10: Autonomous Evolution & Governance
+
+model CodeIssue {
+  id              String   @id @default(uuid())
+  filePath        String
+  lineNumber      Int
+  type            String   // bug | performance | security | refactoring | optimization
+  severity        String   // low | medium | high | critical
+  description     String   @db.Text
+  detectedAt      DateTime @default(now())
+  fixedAt         DateTime?
+  status          String   @default("detected") // detected | analyzing | generating | reviewing | approved | committed | rejected
+
+  @@index([filePath])
+  @@index([severity])
+  @@index([status])
+  @@map("code_issues")
+}
+
+model CodeChange {
+  id              String   @id @default(uuid())
+  issueId         String
+  filePath        String
+  oldCode         String   @db.Text
+  newCode         String   @db.Text
+  description     String   @db.Text
+  generatedAt     DateTime @default(now())
+  reviewedAt      DateTime?
+  approvedAt      DateTime?
+  committedAt     DateTime?
+  commitHash      String?
+  status          String   @default("detected") // detected | analyzing | generating | reviewing | approved | committed | rejected
+
+  @@index([issueId])
+  @@index([filePath])
+  @@index([status])
+  @@map("code_changes")
+}
+
+model AutoCommit {
+  id              String   @id @default(uuid())
+  changes         String[] // CodeChange IDs
+  commitMessage   String   @db.Text
+  branch          String   @default("auto-improvements")
+  createdAt       DateTime @default(now())
+  committedAt     DateTime?
+  commitHash      String?
+  status          String   @default("pending") // pending | committed | failed
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("auto_commits")
+}
+
+model TestCase {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // unit | integration | e2e | performance | regression | security
+  description     String   @db.Text
+  filePath        String
+  status          String   @default("pending") // pending | running | passed | failed | skipped
+  result          String?  // pass | fail | skip
+  duration        Int?     // milliseconds
+  error           String?  @db.Text
+  runAt           DateTime?
+
+  @@index([type])
+  @@index([status])
+  @@map("test_cases")
+}
+
+model TestRun {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // unit | integration | e2e | performance | regression | security
+  tests           String[] // TestCase IDs
+  status          String   @default("pending") // pending | running | passed | failed | skipped
+  passed          Int      @default(0)
+  failed          Int      @default(0)
+  skipped         Int      @default(0)
+  duration        Int      @default(0) // milliseconds
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  triggeredBy     String   @default("auto") // auto | manual | deployment
+
+  @@index([status])
+  @@index([startedAt])
+  @@map("test_runs")
+}
+
+model TestSuite {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  tests           String[] // TestCase IDs
+  runBeforeDeploy Boolean  @default(true)
+  runFrequency    String   @default("always") // always | daily | weekly
+  lastRun         DateTime?
+
+  @@index([name])
+  @@map("test_suites")
+}
+
+model EvolutionCycle {
+  id              String   @id @default(uuid())
+  cycleNumber     Int      @unique
+  status          String   @default("pending") // pending | running | completed | failed
+  improvements    String[] // EvolutionImprovement IDs
+  performance     Json     // { before, after, improvement }
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  duration        Int      @default(0) // milliseconds
+
+  @@index([cycleNumber])
+  @@index([status])
+  @@map("evolution_cycles")
+}
+
+model EvolutionImprovement {
+  id              String   @id @default(uuid())
+  category        String   // performance | security | features | optimization | architecture
+  title           String
+  description     String   @db.Text
+  priority        String   // low | medium | high | critical
+  impact          Json     // { users, revenue, performance }
+  status          String   @default("proposed") // proposed | approved | implemented | rejected
+  proposedAt      DateTime @default(now())
+  implementedAt   DateTime?
+
+  @@index([category])
+  @@index([priority])
+  @@index([status])
+  @@map("evolution_improvements")
+}
+
+model AIPermission {
+  id              String   @id @default(uuid())
+  aiId            String
+  aiName          String
+  permission      String   // read | write | execute | modify | delete | monitor
+  resource        String
+  resourceType    String
+  grantedAt       DateTime @default(now())
+  expiresAt       DateTime?
+  grantedBy       String   @default("system")
+
+  @@index([aiId])
+  @@index([permission])
+  @@index([resource])
+  @@map("ai_permissions")
+}
+
+model TrustRelationship {
+  id              String   @id @default(uuid())
+  fromAI          String
+  toAI            String
+  trustLevel      String   // low | medium | high | trusted
+  accessLevel     String   // public | internal | restricted | confidential
+  permissions     String[] // PermissionType[]
+  establishedAt   DateTime @default(now())
+  lastVerified    DateTime @default(now())
+
+  @@index([fromAI])
+  @@index([toAI])
+  @@index([trustLevel])
+  @@map("trust_relationships")
+}
+
+model GovernanceRule {
+  id              String   @id @default(uuid())
+  framework       String   // CPE | TAG | MCT | SMG
+  name            String
+  description     String   @db.Text
+  rule            String   @db.Text
+  priority        String   // low | medium | high | critical
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([framework])
+  @@index([isActive])
+  @@map("governance_rules")
+}
+
+model DigitalConstitution {
+  id              String   @id @default(uuid())
+  version         String   @unique
+  title           String
+  principles      String[]
+  rights          String[]
+  responsibilities String[]
+  limits          String[]
+  enforcement     String[]
+  effectiveDate   DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([version])
+  @@map("digital_constitution")
+}
+
+model QuantumMemory {
+  id              String   @id @default(uuid())
+  type            String   // fact | relationship | pattern | experience | knowledge
+  content         String   @db.Text
+  priority        String   // low | medium | high | critical
+  entities        String[] // Entity IDs
+  relationships   String[] // Relationship IDs
+  coordinates     Json     // { x, y, z }
+  strength        Int      @default(50) // 0-100
+  lastAccessed    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([priority])
+  @@index([strength])
+  @@map("quantum_memories")
+}
+
+model HolographicEntity {
+  id              String   @id @default(uuid())
+  type            String   // user | ai | app | data | process | event
+  name            String
+  description     String   @db.Text
+  properties      Json
+  coordinates     Json     // { x, y, z }
+  connections     String[] // Connected entity IDs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([name])
+  @@map("holographic_entities")
+}
+
+model HolographicConnection {
+  id              String   @id @default(uuid())
+  fromEntity      String
+  toEntity        String
+  type            String
+  strength        Int      @default(50) // 0-100
+  properties      Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([fromEntity])
+  @@index([toEntity])
+  @@index([type])
+  @@map("holographic_connections")
+}
+
+model MemoryRecall {
+  id              String   @id @default(uuid())
+  query           String   @db.Text
+  memories        String[] // Memory IDs
+  entities        String[] // Entity IDs
+  connections     String[] // Connection IDs
+  confidence      Int      @default(0) // 0-100
+  recalledAt      DateTime @default(now())
+  duration        Int      @default(0) // milliseconds
+
+  @@index([query])
+  @@index([recalledAt])
+  @@map("memory_recalls")
+}
+
+model AIPlatformConnection {
+  id              String   @id @default(uuid())
+  platform        String   // huggingface | openai | anthropic | matrix | custom
+  apiKey          String?  @db.Text
+  endpoint        String?
+  status          String   @default("connected") // connected | disconnected | error
+  lastSync        DateTime @default(now())
+  syncFrequency   Int      @default(60) // minutes
+  metadata        Json?
+
+  @@index([platform])
+  @@index([status])
+  @@map("ai_platform_connections")
+}
+
+model SharedKnowledge {
+  id              String   @id @default(uuid())
+  platform        String   // huggingface | openai | anthropic | matrix | custom
+  type            String   // model | dataset | knowledge | pattern | experience
+  title           String
+  description     String   @db.Text
+  content         String   @db.Text
+  format          String   // model | dataset | text | json | binary
+  sharedAt        DateTime @default(now())
+  receivedAt      DateTime?
+  status          String   @default("pending") // pending | shared | received | rejected
+  metadata        Json?
+
+  @@index([platform])
+  @@index([type])
+  @@index([status])
+  @@map("shared_knowledge")
+}
+
+model CollectiveLearning {
+  id              String   @id @default(uuid())
+  platform        String   // huggingface | openai | anthropic | matrix | custom
+  learningType    String   // model | pattern | optimization | knowledge
+  input           Json
+  output          Json
+  learnedAt       DateTime @default(now())
+  confidence      Int      @default(50) // 0-100
+  applied         Boolean  @default(false)
+
+  @@index([platform])
+  @@index([learningType])
+  @@index([applied])
+  @@map("collective_learnings")
+}

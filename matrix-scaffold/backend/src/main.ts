@@ -7233,8 +7233,20 @@ const start = async () => {
       logInfo('⚠️ Phase 9.3 not available, continuing without it')
     }
 
+    // Phase 10: Initialize Autonomous Evolution & Governance
+    try {
+      const { initializePhase10 } = await import('./phase10/index')
+      await initializePhase10(server)
+      logInfo('✅ Phase 10 - Autonomous Evolution & Governance initialized (100%)')
+      logInfo('🌌 Matrix is now fully autonomous and self-evolving!')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 10 initialization' })
+      logInfo('⚠️ Phase 10 not available, continuing without it')
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
+    logInfo('🌌 Matrix Platform is now fully autonomous! 🌌')
   } catch (err) {
     logError(err as Error, { context: 'startup' })
     captureException(err as Error, { context: 'startup' })
