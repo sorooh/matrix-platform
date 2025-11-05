@@ -3823,3 +3823,244 @@ model CollectiveLearning {
   @@index([applied])
   @@map("collective_learnings")
 }
+
+// Phase 10.1: Global Partnerships & Ecosystem Expansion
+
+model Integration {
+  id              String   @id @default(uuid())
+  provider        String   // aws | gcp | azure | alibaba | huawei | slack | zapier | notion | jira | trello | huggingface | openai | anthropic | custom
+  type            String   // cloud | communication | ai_platform | database | storage | analytics | custom
+  name            String
+  description     String   @db.Text
+  authMethod      String   // oauth2 | api_key | bearer_token | basic_auth
+  credentials     Json     // { apiKey, clientId, clientSecret, accessToken, refreshToken, endpoint }
+  status          String   @default("pending") // pending | connected | disconnected | error
+  capabilities    String[]
+  lastSync        DateTime @default(now())
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([provider])
+  @@index([type])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationConnection {
+  id              String   @id @default(uuid())
+  integrationId   String
+  resourceId      String
+  resourceType    String
+  endpoint        String
+  method          String   // GET | POST | PUT | DELETE | PATCH
+  headers         Json
+  body            Json?
+  response        Json?
+  status          String   @default("pending") // pending | success | error
+  executedAt      DateTime @default(now())
+  duration        Int      @default(0) // milliseconds
+
+  @@index([integrationId])
+  @@index([resourceId])
+  @@index([executedAt])
+  @@map("integration_connections")
+}
+
+model Partner {
+  id              String   @id @default(uuid())
+  type            String   // technical | deployment | research | custom
+  name            String
+  organization    String
+  description     String   @db.Text
+  website         String?
+  contactEmail    String
+  contactPhone    String?
+  country         String
+  tier            String   // bronze | silver | gold | platinum
+  status          String   @default("pending") // pending | active | suspended | terminated
+  capabilities    String[]
+  apiAccess       Json     // { endpoints, rateLimit, permissions }
+  agreementId     String?
+  joinedAt        DateTime @default(now())
+  lastActive      DateTime @default(now())
+  metadata        Json?
+
+  @@index([type])
+  @@index([status])
+  @@index([tier])
+  @@map("partners")
+}
+
+model PartnerAgreement {
+  id              String   @id @default(uuid())
+  partnerId       String
+  type            String   // technical | deployment | research
+  title           String
+  content         Json     // Multi-language
+  signedAt        DateTime @default(now())
+  expiresAt       DateTime?
+  status          String   @default("draft") // draft | pending | signed | expired | terminated
+  metadata        Json?
+
+  @@index([partnerId])
+  @@index([status])
+  @@map("partner_agreements")
+}
+
+model PartnerPerformance {
+  id              String   @id @default(uuid())
+  partnerId       String
+  periodStart     DateTime
+  periodEnd       DateTime
+  metrics         Json     // { apiCalls, successRate, avgResponseTime, uptime, reliability }
+  score           Int      @default(0) // 0-100
+  generatedAt     DateTime @default(now())
+
+  @@index([partnerId])
+  @@index([generatedAt])
+  @@map("partner_performances")
+}
+
+model DeveloperAPIKey {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  name            String
+  type            String   // developer | partner | public | trial
+  status          String   @default("active") // active | suspended | revoked | expired
+  rateLimit       Json     // { requests, period }
+  usageLimits     Json     // { requestsPerDay, tokensPerDay, costPerDay }
+  permissions     String[]
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  lastUsed        DateTime?
+  usage           Json     // { requests, tokens, cost }
+
+  @@index([type])
+  @@index([status])
+  @@index([isActive])
+  @@map("developer_api_keys")
+}
+
+model APIEndpoint {
+  id              String   @id @default(uuid())
+  path            String
+  method          String   // GET | POST | PUT | DELETE | PATCH
+  description     String   @db.Text
+  parameters      Json     // APIParameter[]
+  responses       Json     // APIResponse[]
+  examples        Json     // APIExample[]
+  tags            String[]
+
+  @@index([path])
+  @@index([method])
+  @@map("api_endpoints")
+}
+
+model APIPlaygroundRequest {
+  id              String   @id @default(uuid())
+  endpoint        String
+  method          String   // GET | POST | PUT | DELETE | PATCH
+  headers         Json
+  body            Json?
+  apiKey          String?
+  executedAt      DateTime @default(now())
+  response        Json?
+  duration        Int?     // milliseconds
+  error           String?
+
+  @@index([endpoint])
+  @@index([executedAt])
+  @@map("api_playground_requests")
+}
+
+model MarketplaceIntegration {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  category        String   // automation | communication | cloud | database | analytics | security | custom
+  provider        String
+  icon            String?
+  version         String   @default("1.0.0")
+  price           Float    @default(0)
+  currency        String   @default("USD")
+  isFree          Boolean  @default(true)
+  features        String[]
+  requirements    String[]
+  installation    Json     // { steps, estimatedTime }
+  status          String   @default("available") // available | installed | active | inactive | error
+  rating          Float    @default(0) // 0-5
+  reviews         Int      @default(0)
+  downloads       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([rating])
+  @@map("marketplace_integrations")
+}
+
+model IntegrationInstallation {
+  id              String   @id @default(uuid())
+  integrationId   String
+  userId          String
+  status          String   @default("pending") // pending | installing | installed | failed
+  config          Json
+  installedAt     DateTime?
+  activatedAt     DateTime?
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([integrationId])
+  @@index([userId])
+  @@index([status])
+  @@map("integration_installations")
+}
+
+model PartnerCompliance {
+  id              String   @id @default(uuid())
+  partnerId       String
+  standards       String[] // GDPR | CCPA | PIPL | GCC_DPL | ISO27001 | SOC2
+  status          String   @default("pending") // compliant | non_compliant | pending | reviewing
+  assessments     String[] // ComplianceAssessment IDs
+  riskLevel       String   // low | medium | high | critical
+  riskScore       Int      @default(0) // 0-100
+  lastAssessed    DateTime @default(now())
+  nextAssessment  DateTime
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([riskLevel])
+  @@map("partner_compliances")
+}
+
+model ComplianceAssessment {
+  id              String   @id @default(uuid())
+  standard        String   // GDPR | CCPA | PIPL | GCC_DPL | ISO27001 | SOC2
+  status          String   @default("pending") // compliant | non_compliant | pending | reviewing
+  score           Int      @default(0) // 0-100
+  findings        String[]
+  recommendations String[]
+  assessedAt      DateTime @default(now())
+
+  @@index([standard])
+  @@index([status])
+  @@map("compliance_assessments")
+}
+
+model PartnerRiskAssessment {
+  id              String   @id @default(uuid())
+  partnerId       String
+  riskLevel       String   // low | medium | high | critical
+  riskScore       Int      @default(0) // 0-100
+  factors         Json     // { country, compliance, security, financial, reputation }
+  recommendations String[]
+  assessedAt      DateTime @default(now())
+
+  @@index([partnerId])
+  @@index([riskLevel])
+  @@index([assessedAt])
+  @@map("partner_risk_assessments")
+}

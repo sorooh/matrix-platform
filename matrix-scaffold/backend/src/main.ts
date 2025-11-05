@@ -7244,6 +7244,16 @@ const start = async () => {
       logInfo('⚠️ Phase 10 not available, continuing without it')
     }
 
+    // Phase 10.1: Initialize Global Partnerships & Ecosystem Expansion
+    try {
+      const { initializePhase10_1 } = await import('./phase10_1/index')
+      await initializePhase10_1(server)
+      logInfo('✅ Phase 10.1 - Global Partnerships & Ecosystem Expansion initialized (100%)')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 10.1 initialization' })
+      logInfo('⚠️ Phase 10.1 not available, continuing without it')
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
     logInfo('🌌 Matrix Platform is now fully autonomous! 🌌')
