@@ -7287,6 +7287,17 @@ const start = async () => {
       logInfo('⚠️ Phase 10.4 not available, continuing without it')
     }
 
+    // Phase 10.5: Initialize Critical Missing Features & Security Enhancements
+    try {
+      const { initializePhase10_5 } = await import('./phase10_5/index')
+      await initializePhase10_5(server)
+      logInfo('✅ Phase 10.5 - Critical Missing Features & Security Enhancements initialized (100%)')
+      logInfo('🌍 Matrix is now complete with all missing features!')
+    } catch (error) {
+      logError(error as Error, { context: 'Phase 10.5 initialization' })
+      logInfo('⚠️ Phase 10.5 not available, continuing without it')
+    }
+
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
     logInfo('🌌 Matrix Platform is now fully autonomous! 🌌')
