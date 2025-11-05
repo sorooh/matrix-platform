@@ -4352,3 +4352,528 @@ model SyncConflict {
   @@index([resolution])
   @@map("sync_conflicts")
 }
+
+// Phase 10.4: Professional Enhancements & Global Competition
+
+model SecurityThreat {
+  id              String   @id @default(uuid())
+  type            String   // ddos | malware | sql_injection | xss | brute_force | unauthorized_access | data_breach | suspicious_activity
+  severity        String   // low | medium | high | critical
+  source          String
+  target          String
+  description     String   @db.Text
+  detectedAt      DateTime @default(now())
+  status          String   @default("detected") // detected | investigating | contained | resolved | false_positive
+  mitigation      String[]
+  resolvedAt      DateTime?
+  metadata        Json?
+
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@map("security_threats")
+}
+
+model SecurityIncident {
+  id              String   @id @default(uuid())
+  threatId        String
+  title           String
+  description     String   @db.Text
+  severity        String   // low | medium | high | critical
+  status          String   @default("detected") // detected | investigating | contained | resolved | false_positive
+  detectedAt      DateTime @default(now())
+  resolvedAt      DateTime?
+  response        Json     // { automated, actions, executedAt }
+  impact          Json     // { affectedUsers, affectedServices, dataExposed, downtime }
+
+  @@index([threatId])
+  @@index([status])
+  @@map("security_incidents")
+}
+
+model VulnerabilityScan {
+  id              String   @id @default(uuid())
+  target          String
+  type            String   // application | infrastructure | dependencies | code
+  status          String   @default("running") // running | completed | failed
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  score           Float    @default(0) // 0-10 (CVSS)
+
+  @@index([target])
+  @@index([status])
+  @@map("vulnerability_scans")
+}
+
+model Vulnerability {
+  id              String   @id @default(uuid())
+  cveId           String?
+  title           String
+  description     String   @db.Text
+  severity        String   // low | medium | high | critical
+  cvssScore       Float    @default(0) // 0-10
+  affectedComponents String[]
+  remediation     String   @db.Text
+  status          String   @default("new") // new | in_progress | patched | ignored
+  discoveredAt    DateTime @default(now())
+  patchedAt       DateTime?
+
+  @@index([severity])
+  @@index([status])
+  @@map("vulnerabilities")
+}
+
+model SecurityPatch {
+  id              String   @id @default(uuid())
+  vulnerabilityId String
+  component       String
+  version         String
+  patchType       String   // hotfix | security | update
+  appliedAt       DateTime @default(now())
+  appliedBy       String
+  status          String   @default("pending") // pending | applied | failed | rolled_back
+  rollbackAvailable Boolean @default(false)
+
+  @@index([vulnerabilityId])
+  @@index([status])
+  @@map("security_patches")
+}
+
+model SecurityCompliance {
+  id              String   @id @default(uuid())
+  standard        String   // GDPR | SOC2 | ISO27001 | HIPAA | PCI-DSS
+  status          String   @default("compliant") // compliant | non_compliant | partial
+  score           Int      @default(100) // 0-100
+  lastAudit       DateTime @default(now())
+  nextAudit       DateTime
+  findings        String[]
+  remediation     String[]
+
+  @@index([standard])
+  @@index([status])
+  @@map("security_compliances")
+}
+
+model CacheConfig {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  strategy        String   // lru | lfu | fifo | ttl | custom
+  level           String   // memory | redis | cdn | database
+  ttl             Int      @default(3600) // seconds
+  maxSize         Int      @default(10000)
+  hitRate         Float    @default(0) // 0-100
+  missRate        Float    @default(0) // 0-100
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([strategy])
+  @@index([level])
+  @@map("cache_configs")
+}
+
+model QueryOptimization {
+  id              String   @id @default(uuid())
+  query           String   @db.Text
+  originalExecutionTime Int @default(0) // milliseconds
+  optimizedExecutionTime Int @default(0) // milliseconds
+  improvement     Float    @default(0) // percentage
+  optimizations   String[]
+  appliedAt       DateTime @default(now())
+
+  @@index([improvement])
+  @@map("query_optimizations")
+}
+
+model DatabaseIndex {
+  id              String   @id @default(uuid())
+  table           String
+  columns         String[]
+  type            String   // btree | hash | gin | gist | spgist | brin
+  usage           Int      @default(0)
+  impact          Float    @default(0) // performance improvement percentage
+  createdAt       DateTime @default(now())
+
+  @@index([table])
+  @@index([type])
+  @@map("database_indexes")
+}
+
+model ShardingConfig {
+  id              String   @id @default(uuid())
+  table           String
+  strategy        String   // range | hash | directory
+  shardKey        String
+  shards          Json     // Shard[]
+  createdAt       DateTime @default(now())
+
+  @@index([table])
+  @@map("sharding_configs")
+}
+
+model CDNConfig {
+  id              String   @id @default(uuid())
+  domain          String
+  provider        String   // cloudflare | aws | azure | gcp
+  edgeLocations   String[]
+  cacheRules      Json     // CacheRule[]
+  status          String   @default("active") // active | inactive
+  createdAt       DateTime @default(now())
+
+  @@index([domain])
+  @@index([status])
+  @@map("cdn_configs")
+}
+
+model PerformanceMetric {
+  id              String   @id @default(uuid())
+  endpoint        String
+  method          String
+  responseTime    Int      @default(0) // milliseconds
+  throughput      Float    @default(0) // requests per second
+  errorRate       Float    @default(0) // 0-100
+  cpuUsage        Float    @default(0) // 0-100
+  memoryUsage     Float    @default(0) // 0-100
+  timestamp       DateTime @default(now())
+
+  @@index([endpoint])
+  @@index([timestamp])
+  @@map("performance_metrics")
+}
+
+model PerformanceBudget {
+  id              String   @id @default(uuid())
+  resource        String
+  metric          String   // response_time | throughput | error_rate | cpu | memory
+  threshold       Float
+  current         Float    @default(0)
+  status          String   @default("within_budget") // within_budget | exceeding_budget
+  alerts          Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([resource])
+  @@index([status])
+  @@map("performance_budgets")
+}
+
+model Trace {
+  id              String   @id @default(uuid())
+  traceId         String
+  spanId          String
+  parentSpanId    String?
+  service         String
+  operation       String
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  duration        Int?     // milliseconds
+  status          String   @default("success") // success | error | timeout
+  tags            Json
+  logs            Json     // TraceLog[]
+  metadata        Json?
+
+  @@index([traceId])
+  @@index([service])
+  @@index([startTime])
+  @@map("traces")
+}
+
+model StructuredLog {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  level           String   // debug | info | warn | error | fatal
+  service         String
+  message         String   @db.Text
+  fields          Json
+  context         Json     // { userId, requestId, traceId, sessionId }
+  error           Json?    // { name, message, stack }
+
+  @@index([level])
+  @@index([service])
+  @@index([timestamp])
+  @@map("structured_logs")
+}
+
+model Metric {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // counter | gauge | histogram | summary
+  value           Float
+  labels          Json
+  timestamp       DateTime @default(now())
+
+  @@index([name])
+  @@index([timestamp])
+  @@map("metrics")
+}
+
+model AlertRule {
+  id              String   @id @default(uuid())
+  name            String
+  metric          String
+  condition       String   // gt | lt | eq | gte | lte
+  threshold       Float
+  severity        String   // low | medium | high | critical
+  enabled         Boolean  @default(true)
+  actions         String[] // Notification channels
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([metric])
+  @@index([enabled])
+  @@map("alert_rules")
+}
+
+model Alert {
+  id              String   @id @default(uuid())
+  ruleId          String
+  name            String
+  message         String   @db.Text
+  severity        String   // low | medium | high | critical
+  status          String   @default("firing") // firing | resolved | acknowledged
+  triggeredAt     DateTime @default(now())
+  resolvedAt      DateTime?
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([severity])
+  @@map("alerts")
+}
+
+model Dashboard {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  widgets         Json     // DashboardWidget[]
+  layout          Json     // { rows, columns }
+  isPublic        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isPublic])
+  @@map("dashboards")
+}
+
+model SLAMetric {
+  id              String   @id @default(uuid())
+  service         String
+  metric          String
+  target          Float
+  current         Float    @default(0)
+  status          String   @default("meeting") // meeting | violating
+  uptime          Float    @default(100) // percentage
+  lastViolation   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([service])
+  @@index([status])
+  @@map("sla_metrics")
+}
+
+model APIVersionConfig {
+  id              String   @id @default(uuid())
+  version         String   // v1 | v2 | v3 | beta | alpha
+  baseUrl         String
+  isDeprecated    Boolean  @default(false)
+  deprecatedAt    DateTime?
+  sunsetDate      DateTime?
+  changelog       String[]
+  breakingChanges String[]
+  migrationGuide  String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([version])
+  @@index([isDeprecated])
+  @@map("api_version_configs")
+}
+
+model GraphQLSchema {
+  id              String   @id @default(uuid())
+  name            String
+  version         String
+  schema          String   @db.Text // GraphQL SDL
+  resolvers       Json
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@map("graphql_schemas")
+}
+
+model GraphQLQuery {
+  id              String   @id @default(uuid())
+  query           String   @db.Text
+  variables       Json?
+  operation       String   // query | mutation | subscription
+  executedAt      DateTime @default(now())
+  duration        Int      @default(0) // milliseconds
+  success         Boolean  @default(true)
+  error           String?  @db.Text
+
+  @@index([operation])
+  @@index([executedAt])
+  @@map("graphql_queries")
+}
+
+model SDKConfig {
+  id              String   @id @default(uuid())
+  language        String   // javascript | typescript | python | java | go | rust | php | ruby
+  version         String
+  packageName     String
+  packageManager  String   // npm | pip | maven | go | cargo | composer | gem
+  repositoryUrl   String
+  downloadUrl     String
+  documentation   String
+  examples        String[]
+  generatedAt     DateTime @default(now())
+  isActive        Boolean  @default(true)
+
+  @@index([language])
+  @@index([isActive])
+  @@map("sdk_configs")
+}
+
+model SandboxEnvironment {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  config          Json     // { apiVersion, features, limits }
+  status          String   @default("active") // active | inactive | suspended
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@map("sandbox_environments")
+}
+
+model CLITool {
+  id              String   @id @default(uuid())
+  name            String
+  version         String
+  description     String   @db.Text
+  platform        String   // windows | linux | macos | all
+  downloadUrl     String
+  commands        Json     // CLICommand[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([platform])
+  @@index([isActive])
+  @@map("cli_tools")
+}
+
+model MockServer {
+  id              String   @id @default(uuid())
+  name            String
+  baseUrl         String
+  endpoints        Json     // MockEndpoint[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("mock_servers")
+}
+
+model BusinessReport {
+  id              String   @id @default(uuid())
+  type            String   // revenue | usage | customers | performance | custom
+  title           String
+  description     String   @db.Text
+  format          String   // pdf | excel | csv | json | html
+  data            Json
+  filters         Json
+  periodStart     DateTime
+  periodEnd       DateTime
+  generatedAt     DateTime @default(now())
+  generatedBy     String
+
+  @@index([type])
+  @@index([generatedAt])
+  @@map("business_reports")
+}
+
+model RevenueMetric {
+  id              String   @id @default(uuid())
+  date            DateTime @default(now())
+  revenue         Float    @default(0)
+  currency        String   @default("USD")
+  sources         Json     // { subscriptions, usage, oneTime, refunds }
+  mrr             Float    @default(0) // Monthly Recurring Revenue
+  arr             Float    @default(0) // Annual Recurring Revenue
+  createdAt       DateTime @default(now())
+
+  @@index([date])
+  @@map("revenue_metrics")
+}
+
+model CostMetric {
+  id              String   @id @default(uuid())
+  date            DateTime @default(now())
+  costs           Json     // { infrastructure, thirdParty, support, marketing, other }
+  total           Float    @default(0)
+  currency        String   @default("USD")
+  createdAt       DateTime @default(now())
+
+  @@index([date])
+  @@map("cost_metrics")
+}
+
+model CustomerMetric {
+  id              String   @id @default(uuid())
+  date            DateTime @default(now())
+  metrics         Json     // { totalCustomers, newCustomers, churnedCustomers, activeCustomers, churnRate, ltv, cac }
+  createdAt       DateTime @default(now())
+
+  @@index([date])
+  @@map("customer_metrics")
+}
+
+model ChurnAnalysis {
+  id              String   @id @default(uuid())
+  periodStart     DateTime
+  periodEnd       DateTime
+  churnedCustomers Int    @default(0)
+  churnRate       Float    @default(0) // percentage
+  reasons         Json     // { reason, count, percentage }[]
+  revenueLost     Float    @default(0)
+  recommendations String[]
+  analyzedAt      DateTime @default(now())
+
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("churn_analyses")
+}
+
+model PredictiveForecast {
+  id              String   @id @default(uuid())
+  metric          String   // revenue | mrr | arr | churn | ltv | cac | custom
+  forecast        Json     // { date, value, confidence }[]
+  model           String
+  accuracy        Float    @default(0) // 0-100
+  generatedAt     DateTime @default(now())
+
+  @@index([metric])
+  @@index([generatedAt])
+  @@map("predictive_forecasts")
+}
+
+model BusinessDashboard {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  widgets         Json     // BusinessWidget[]
+  isPublic        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isPublic])
+  @@map("business_dashboards")
+}
