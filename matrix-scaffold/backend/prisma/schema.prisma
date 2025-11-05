@@ -715,3 +715,213 @@ model TwoFactorAuth {
   @@map("two_factor_auth")
 }
 
+// Phase 8.2: Partner & Reseller Portal
+
+model Partner {
+  id              String   @id @default(uuid())
+  name            String
+  email           String
+  subdomain       String   @unique
+  domain          String?
+  logo            String?
+  theme           Json?    // PartnerTheme
+  status          String   @default("pending") // active | suspended | pending | inactive
+  tier            String   @default("bronze") // bronze | silver | gold | platinum
+  commissionRate  Float    @default(10)
+  customPricing   Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  members         PartnerMember[]
+  resellers       Reseller[]
+  commissions     Commission[]
+  payouts         Payout[]
+  oauthClients    PartnerOAuthClient[]
+  brandConfig     BrandConfig?
+  auditLogs       PartnerAuditLog[]
+
+  @@index([status])
+  @@index([tier])
+  @@index([subdomain])
+  @@map("partners")
+}
+
+model PartnerMember {
+  id              String   @id @default(uuid())
+  partnerId       String
+  userId          String
+  role            String   // owner | manager | sales | support | viewer
+  email           String
+  name            String
+  permissions     String[]
+  createdAt       DateTime @default(now())
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([userId])
+  @@map("partner_members")
+}
+
+model Reseller {
+  id              String   @id @default(uuid())
+  partnerId       String
+  name            String
+  email           String
+  status          String   @default("pending") // active | suspended | pending | inactive
+  commissionRate  Float    @default(5)
+  customPricing   Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  customers      ResellerCustomer[]
+  commissions    Commission[]
+
+  @@index([partnerId])
+  @@index([status])
+  @@map("resellers")
+}
+
+model ResellerCustomer {
+  id              String   @id @default(uuid())
+  resellerId      String
+  userId          String
+  email           String
+  name            String
+  subscriptionId String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  reseller        Reseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+
+  @@index([resellerId])
+  @@index([userId])
+  @@map("reseller_customers")
+}
+
+model Commission {
+  id              String   @id @default(uuid())
+  partnerId       String
+  resellerId      String?
+  type            String   // sale | subscription | recurring
+  amount          Float
+  currency        String   @default("USD")
+  percentage      Float
+  saleAmount      Float
+  status          String   @default("pending") // pending | processing | completed | failed
+  payoutId        String?
+  saleId          String?
+  subscriptionId  String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  paidAt          DateTime?
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  reseller        Reseller? @relation(fields: [resellerId], references: [id], onDelete: SetNull)
+  payout          Payout?   @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  @@index([partnerId])
+  @@index([resellerId])
+  @@index([status])
+  @@index([payoutId])
+  @@index([createdAt])
+  @@map("commissions")
+}
+
+model Payout {
+  id              String   @id @default(uuid())
+  partnerId       String
+  amount          Float
+  currency        String   @default("USD")
+  status          String   @default("pending") // pending | processing | completed | failed
+  paymentProvider String   // stripe | paypal
+  paymentMethodId String
+  commissions     String[] // Commission IDs
+  scheduledAt     DateTime
+  processedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  commissionList  Commission[]
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("payouts")
+}
+
+model PartnerOAuthClient {
+  id              String   @id @default(uuid())
+  partnerId       String
+  clientId        String   @unique
+  clientSecret    String
+  redirectUris    String[]
+  scopes          String[]
+  rateLimit       Json     // RateLimit
+  createdAt       DateTime @default(now())
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([clientId])
+  @@map("partner_oauth_clients")
+}
+
+model BrandConfig {
+  id              String   @id @default(uuid())
+  partnerId       String   @unique
+  brandName       String
+  logo            String?
+  favicon         String?
+  theme           Json     // BrandTheme
+  domain          String?
+  subdomain       String?
+  sslEnabled      Boolean  @default(true)
+  regionPricing   Json?
+  customColors    Json?
+  customFonts     Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([domain])
+  @@index([subdomain])
+  @@map("brand_configs")
+}
+
+model PartnerAuditLog {
+  id              String   @id @default(uuid())
+  partnerId       String
+  userId          String
+  action          String   // create | update | delete | suspend | activate | payment | payout
+  resource        String
+  resourceId      String?
+  changes         Json?
+  ipAddress       String?
+  userAgent       String?
+  timestamp       DateTime @default(now())
+
+  // Relations
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("partner_audit_logs")
+}
+
