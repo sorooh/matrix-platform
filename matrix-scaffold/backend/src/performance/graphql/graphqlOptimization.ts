@@ -9,6 +9,7 @@
  */
 
 import { nanoid } from 'nanoid'
+import crypto from 'crypto'
 import { logger, logError, logInfo } from '../../config/logger'
 
 export type QueryComplexity = 'low' | 'medium' | 'high' | 'critical'

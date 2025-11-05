@@ -26,7 +26,7 @@ export interface DataLineage {
   updatedAt: Date
 }
 
-class DataLineage {
+class DataLineageTracking {
   private lineages: Map<string, DataLineage> = new Map()
 
   async initialize() {
@@ -59,5 +59,5 @@ class DataLineage {
   }
 }
 
-export const dataLineage = new DataLineage()
+export const dataLineage = new DataLineageTracking()
 
