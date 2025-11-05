@@ -2662,3 +2662,246 @@ model PublicPerformanceReport {
   @@index([generatedAt])
   @@map("public_performance_reports")
 }
+
+// Phase 9.1: Global Compliance & Legal Standards
+
+model ComplianceCheck {
+  id              String   @id @default(uuid())
+  standard        String   // GDPR | CCPA | PIPL | GCC | ISO27001 | SOC2 | HIPAA | PCI-DSS
+  region          String   // EU | US | ASIA | GCC | GLOBAL
+  status          String   @default("pending") // compliant | non_compliant | pending | breached
+  checks          Json     // ComplianceCheckItem[]
+  score           Int      @default(0) // 0-100
+  lastChecked     DateTime @default(now())
+  nextCheck       DateTime
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([standard])
+  @@index([region])
+  @@index([status])
+  @@map("compliance_checks")
+}
+
+model ComplianceBreach {
+  id              String   @id @default(uuid())
+  checkId         String
+  severity        String   // low | medium | high | critical
+  description     String   @db.Text
+  detectedAt      DateTime @default(now())
+  resolvedAt      DateTime?
+  resolution      String?  @db.Text
+
+  @@index([checkId])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("compliance_breaches")
+}
+
+model DataResidencyRule {
+  id              String   @id @default(uuid())
+  region          String   // EU | US | ASIA | GCC | CUSTOM
+  dataType        String   // user_data | transaction_data | ai_data | log_data | metadata
+  storageLocation String   // frankfurt | iowa | singapore | dubai | custom
+  encryptionRequired Boolean @default(true)
+  transferAllowed Boolean  @default(false)
+  transferConditions String[] // scc | explicit_consent | safeguards
+  sccRequired     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([region])
+  @@index([dataType])
+  @@map("data_residency_rules")
+}
+
+model DataTransfer {
+  id              String   @id @default(uuid())
+  fromRegion      String
+  toRegion        String
+  dataType        String
+  transferMethod  String   // scc | adequacy | safeguards | explicit_consent
+  status          String   @default("pending") // pending | approved | rejected | completed
+  sccSigned       Boolean  @default(false)
+  consentObtained Boolean  @default(false)
+  transferredAt   DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([fromRegion])
+  @@index([toRegion])
+  @@index([status])
+  @@map("data_transfers")
+}
+
+model SCCAgreement {
+  id              String   @id @default(uuid())
+  transferId      String
+  fromRegion      String
+  toRegion        String
+  signedAt        DateTime @default(now())
+  expiresAt       DateTime
+  status          String   @default("active") // active | expired | revoked
+  documentUrl     String?
+
+  @@index([transferId])
+  @@index([status])
+  @@map("scc_agreements")
+}
+
+model SecurityCertification {
+  id              String   @id @default(uuid())
+  type            String   // ISO27001 | SOC2 | HIPAA | PCI-DSS | GDPR | CUSTOM
+  status          String   @default("pending") // pending | issued | expired | revoked | suspended
+  issuer          String
+  certificateNumber String
+  issuedAt        DateTime
+  expiresAt       DateTime
+  autoRenew       Boolean  @default(true)
+  documentUrl     String?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("security_certifications")
+}
+
+model CertificationRequirement {
+  id              String   @id @default(uuid())
+  certificationId String
+  name            String
+  description     String   @db.Text
+  status          String   @default("pending") // pending | met | not_met
+  evidence        String?  @db.Text
+  checkedAt       DateTime?
+
+  @@index([certificationId])
+  @@index([status])
+  @@map("certification_requirements")
+}
+
+model LegalDocument {
+  id              String   @id @default(uuid())
+  type            String   // terms_of_service | privacy_policy | cookie_policy | developer_agreement | dpa | refund_policy
+  language        String   // en | ar | nl | zh | fr | de | es | ja
+  version         String   @default("1.0.0")
+  status          String   @default("draft") // draft | published | archived
+  title           String
+  content         String   @db.Text
+  effectiveDate   DateTime @default(now())
+  expiresAt       DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([language])
+  @@index([status])
+  @@map("legal_documents")
+}
+
+model DocumentVersion {
+  id              String   @id @default(uuid())
+  documentId      String
+  version         String
+  content         String   @db.Text
+  changes         String[]
+  effectiveDate   DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([documentId])
+  @@index([version])
+  @@map("document_versions")
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  action          String   // data_access | admin_action | api_call | data_modification | data_deletion | user_login | permission_change
+  userId          String?
+  resourceId      String?
+  resourceType    String?
+  ipAddress       String
+  userAgent       String?
+  country         String?
+  timestamp       DateTime @default(now())
+  details         Json
+  severity        String   // low | medium | high | critical
+  hash            String   // Immutable hash
+  previousHash    String?
+
+  @@index([userId])
+  @@index([resourceId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([severity])
+  @@map("audit_logs")
+}
+
+model AuditReport {
+  id              String   @id @default(uuid())
+  type            String   // compliance | security | data_access | admin_actions
+  startDate       DateTime
+  endDate         DateTime
+  format          String   // json | csv | pdf | xlsx
+  generatedAt     DateTime @default(now())
+  data            Json
+  hash            String   // Immutable hash
+
+  @@index([type])
+  @@index([generatedAt])
+  @@map("audit_reports")
+}
+
+model AIGovernancePolicy {
+  id              String   @id @default(uuid())
+  standard        String   // EU_AI_ACT | OECD_AI_PRINCIPLES | CUSTOM
+  category        String   // high_risk | limited_risk | minimal_risk | prohibited
+  name            String
+  description     String   @db.Text
+  requirements    String[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([standard])
+  @@index([category])
+  @@map("ai_governance_policies")
+}
+
+model AIBiasDetection {
+  id              String   @id @default(uuid())
+  aiId            String
+  biasType        String   // gender | racial | age | socioeconomic | other
+  severity        String   // low | medium | high | critical
+  description     String   @db.Text
+  evidence        Json
+  detectedAt      DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([aiId])
+  @@index([biasType])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("ai_bias_detections")
+}
+
+model EthicsViolationReport {
+  id              String   @id @default(uuid())
+  aiId            String
+  violation       String   // bias | discrimination | privacy | transparency | accountability
+  description     String   @db.Text
+  severity        String   // low | medium | high | critical
+  status          String   @default("open") // open | investigating | resolved
+  reportedAt      DateTime @default(now())
+  resolvedAt      DateTime?
+  resolution      String?  @db.Text
+
+  @@index([aiId])
+  @@index([violation])
+  @@index([status])
+  @@index([severity])
+  @@map("ethics_violation_reports")
+}
