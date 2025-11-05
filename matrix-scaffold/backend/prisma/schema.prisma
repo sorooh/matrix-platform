@@ -1848,29 +1848,6 @@ model AIIdentity {
   @@map("ai_identities")
 }
 
-
-// Phase 8.5: Matrix Intelligence Federation & Internal Economy
-
-model AIIdentity {
-  id              String   @id @default(uuid())
-  type            String   // intelligence | app | service | agent
-  name            String
-  description     String?  @db.Text
-  token           String   @unique
-  publicKey       String
-  capabilities    String[]
-  endpoint        String?
-  metadata        Json?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([type])
-  @@index([token])
-  @@index([isActive])
-  @@map("ai_identities")
-}
-
 model AICommunication {
   id              String   @id @default(uuid())
   fromAI          String
@@ -2056,4 +2033,215 @@ model AIReputation {
   @@index([rank])
   @@index([status])
   @@map("ai_reputations")
+}
+
+// Phase 8.6: Professional Enhancements & Global Competition Features
+
+model InvoiceTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // default | minimal | detailed | custom
+  template        String   @db.Text
+  logo            String?
+  colors          Json?
+  footer          String?  @db.Text
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([type])
+  @@index([isDefault])
+  @@map("invoice_templates")
+}
+
+model PaymentRetry {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  attempt         Int
+  scheduledAt     DateTime
+  status          String   @default("pending") // pending | succeeded | failed | expired
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("payment_retries")
+}
+
+model DunningRule {
+  id              String   @id @default(uuid())
+  name            String
+  daysAfterFailure Int
+  action          String   // email | retry | suspend | cancel
+  emailTemplate   String?  @db.Text
+  isActive        Boolean  @default(true)
+
+  @@index([isActive])
+  @@map("dunning_rules")
+}
+
+model GitRepository {
+  id              String   @id @default(uuid())
+  appId           String
+  provider        String   // github | gitlab | bitbucket | custom
+  repositoryUrl   String
+  branch          String   @default("main")
+  accessToken     String   // Encrypted
+  webhookSecret   String?
+  createdAt       DateTime @default(now())
+
+  @@index([appId])
+  @@index([provider])
+  @@map("git_repositories")
+}
+
+model CICDPipeline {
+  id              String   @id @default(uuid())
+  appId           String
+  repositoryId    String
+  status          String   @default("pending") // pending | running | success | failed | cancelled
+  stages          Json     // PipelineStage[]
+  startedAt       DateTime?
+  completedAt     DateTime?
+  error           String?  @db.Text
+
+  @@index([appId])
+  @@index([repositoryId])
+  @@index([status])
+  @@map("cicd_pipelines")
+}
+
+model TestResult {
+  id              String   @id @default(uuid())
+  pipelineId     String
+  testSuite       String
+  status          String   @default("pending") // pending | running | passed | failed
+  passed          Int      @default(0)
+  failed          Int      @default(0)
+  skipped         Int      @default(0)
+  duration        Int      @default(0) // milliseconds
+  logs            String[] @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([pipelineId])
+  @@index([status])
+  @@map("test_results")
+}
+
+model Deployment {
+  id              String   @id @default(uuid())
+  appId           String
+  version         String
+  status          String   @default("pending") // pending | deploying | deployed | failed | rolled_back
+  environment     String   // development | staging | production
+  deployedAt      DateTime?
+  rolledBackAt     DateTime?
+  error           String?  @db.Text
+
+  @@index([appId])
+  @@index([status])
+  @@index([environment])
+  @@map("deployments")
+}
+
+model ComplianceCheck {
+  id              String   @id @default(uuid())
+  standard        String   // GDPR | SOC2 | HIPAA | ISO27001 | PCI-DSS
+  status          String   @default("pending") // compliant | non_compliant | pending | expired
+  checks          Json     // ComplianceCheckItem[]
+  score           Int      @default(0) // 0-100
+  lastChecked     DateTime @default(now())
+  nextCheck       DateTime
+  notes           String?  @db.Text
+
+  @@index([standard])
+  @@index([status])
+  @@index([lastChecked])
+  @@map("compliance_checks")
+}
+
+model DataRetentionRule {
+  id              String   @id @default(uuid())
+  dataType        String
+  retentionPeriod String   // 30_days | 90_days | 1_year | 7_years | indefinite
+  autoDelete      Boolean  @default(false)
+  archived        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([dataType])
+  @@map("data_retention_rules")
+}
+
+model Trace {
+  id              String   @id @default(uuid())
+  traceId         String
+  spanId          String
+  parentSpanId    String?
+  service         String
+  operation       String
+  startTime       DateTime
+  endTime         DateTime?
+  duration        Int?     // milliseconds
+  tags            Json
+  logs            Json?    // TraceLog[]
+
+  @@index([traceId])
+  @@index([spanId])
+  @@index([service])
+  @@index([startTime])
+  @@map("traces")
+}
+
+model MonitoringDashboard {
+  id              String   @id @default(uuid())
+  name            String
+  widgets         Json     // DashboardWidget[]
+  createdAt       DateTime @default(now())
+
+  @@index([name])
+  @@map("monitoring_dashboards")
+}
+
+model MLInsight {
+  id              String   @id @default(uuid())
+  type            String   // forecast | anomaly | classification | clustering
+  metric          String
+  prediction      Float
+  confidence      Int      @default(0) // 0-100
+  factors         String[]
+  createdAt       DateTime @default(now())
+
+  @@index([metric])
+  @@index([type])
+  @@index([createdAt])
+  @@map("ml_insights")
+}
+
+model AnomalyDetection {
+  id              String   @id @default(uuid())
+  metric          String
+  type            String   // spike | drop | outlier | pattern_change
+  value           Float
+  expectedValue   Float
+  deviation       Float
+  severity        String   // low | medium | high | critical
+  detectedAt      DateTime @default(now())
+
+  @@index([metric])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("anomaly_detections")
+}
+
+model PredictiveForecast {
+  id              String   @id @default(uuid())
+  metric          String
+  predictions     Json     // ForecastPoint[]
+  confidence      Int      @default(0) // 0-100
+  generatedAt     DateTime @default(now())
+
+  @@index([metric])
+  @@index([generatedAt])
+  @@map("predictive_forecasts")
 }
