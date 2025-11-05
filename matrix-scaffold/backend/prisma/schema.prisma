@@ -1825,3 +1825,235 @@ model AppInstallation {
   @@map("app_installations")
 }
 
+
+// Phase 8.5: Matrix Intelligence Federation & Internal Economy
+
+model AIIdentity {
+  id              String   @id @default(uuid())
+  type            String   // intelligence | app | service | agent
+  name            String
+  description     String?  @db.Text
+  token           String   @unique
+  publicKey       String
+  capabilities    String[]
+  endpoint        String?
+  metadata        Json?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([token])
+  @@index([isActive])
+  @@map("ai_identities")
+}
+
+
+// Phase 8.5: Matrix Intelligence Federation & Internal Economy
+
+model AIIdentity {
+  id              String   @id @default(uuid())
+  type            String   // intelligence | app | service | agent
+  name            String
+  description     String?  @db.Text
+  token           String   @unique
+  publicKey       String
+  capabilities    String[]
+  endpoint        String?
+  metadata        Json?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([token])
+  @@index([isActive])
+  @@map("ai_identities")
+}
+
+model AICommunication {
+  id              String   @id @default(uuid())
+  fromAI          String
+  toAI            String
+  message         String   @db.Text
+  payload         Json
+  status          String   // pending | active | completed | failed
+  response        Json?
+  timestamp       DateTime @default(now())
+
+  @@index([fromAI])
+  @@index([toAI])
+  @@index([status])
+  @@map("ai_communications")
+}
+
+model ServiceRequest {
+  id              String   @id @default(uuid())
+  requesterAI     String
+  providerAI      String
+  service         String
+  parameters      Json
+  status          String   // pending | processing | completed | failed | rejected
+  cost            Float?
+  currency        String?
+  result          Json?
+  error           String?  @db.Text
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([requesterAI])
+  @@index([providerAI])
+  @@index([status])
+  @@map("service_requests")
+}
+
+model DependencyRelation {
+  id              String   @id @default(uuid())
+  fromAI          String
+  toAI            String
+  service         String
+  isRequired      Boolean  @default(true)
+  priority        Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  @@index([fromAI])
+  @@index([toAI])
+  @@map("dependency_relations")
+}
+
+model MatrixCoinWallet {
+  id              String   @id @default(uuid())
+  accountId       String   @unique
+  accountType     String   // user | developer | ai | app | system
+  balance         Float    @default(0)
+  lockedBalance   Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalSpent      Float    @default(0)
+  lastUpdated     DateTime @default(now())
+
+  @@index([accountId])
+  @@index([accountType])
+  @@map("matrix_coin_wallets")
+}
+
+model MatrixCoinTransaction {
+  id              String   @id @default(uuid())
+  fromAccountId   String
+  fromAccountType String
+  toAccountId     String
+  toAccountType   String
+  amount          Float
+  currency        String   @default("MXC")
+  type            String   // transfer | payment | reward | fee | conversion | mint | burn
+  status          String   @default("pending") // pending | processing | completed | failed | reversed
+  description     String?  @db.Text
+  metadata        Json?
+  blockHash       String?
+  transactionHash String?
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("matrix_coin_transactions")
+}
+
+model CurrencyConversion {
+  id              String   @id @default(uuid())
+  accountId       String
+  fromCurrency    String
+  toCurrency      String
+  fromAmount      Float
+  toAmount        Float
+  exchangeRate    Float
+  fee             Float
+  status          String   // pending | processing | completed | failed
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([accountId])
+  @@index([status])
+  @@map("currency_conversions")
+}
+
+model AIContract {
+  id              String   @id @default(uuid())
+  fromAI          String
+  toAI            String
+  type            String   // service | payment | data | computation
+  service         String
+  description     String   @db.Text
+  price           Float
+  currency        String   @default("MXC")
+  duration        Int?     // seconds
+  conditions      Json     // ContractCondition[]
+  status          String   @default("active") // active | completed | failed | cancelled
+  result          Json?
+  error           String?  @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([fromAI])
+  @@index([toAI])
+  @@index([status])
+  @@index([type])
+  @@map("ai_contracts")
+}
+
+model LedgerEntry {
+  id              String   @id @default(uuid())
+  type            String   // ai_contract | transaction | conversion
+  entityId        String
+  action          String
+  data            Json
+  timestamp       DateTime @default(now())
+
+  @@index([type])
+  @@index([entityId])
+  @@index([timestamp])
+  @@map("ledger_entries")
+}
+
+model AppAICall {
+  id              String   @id @default(uuid())
+  appId           String
+  aiId            String
+  service         String
+  input           Json
+  output          Json?
+  cost            Float
+  currency        String   @default("MXC")
+  status          String   @default("pending") // pending | processing | completed | failed
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([appId])
+  @@index([aiId])
+  @@index([status])
+  @@map("app_ai_calls")
+}
+
+model AIReputation {
+  id              String   @id @default(uuid())
+  aiId            String   @unique
+  rating          Float    @default(5.0) // 0-5
+  accuracy        Float    @default(100) // 0-100
+  performance     Float    @default(100) // 0-100
+  userSatisfaction Float   @default(100) // 0-100
+  totalCalls      Int      @default(0)
+  successfulCalls Int      @default(0)
+  failedCalls     Int      @default(0)
+  averageLatency  Float    @default(0) // milliseconds
+  rank            Int      @default(0)
+  status          String   @default("active") // active | suspended | deprecated
+  lastUpdated     DateTime @default(now())
+
+  @@index([aiId])
+  @@index([rank])
+  @@index([status])
+  @@map("ai_reputations")
+}
