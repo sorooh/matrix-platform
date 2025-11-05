@@ -10,6 +10,25 @@ echo "📦 Server: senorbit-core"
 echo "🌍 Domain: senorbit.ai"
 echo ""
 
+# Check DNS first
+echo "🔍 Checking DNS configuration..."
+if [ -f "./check-dns.sh" ]; then
+    ./check-dns.sh || {
+        echo ""
+        echo "⚠️ DNS is not configured yet!"
+        echo ""
+        echo "📋 Please configure DNS first:"
+        echo "  1. Add A record: @ -> 46.224.42.221"
+        echo "  2. Add A record: www -> 46.224.42.221"
+        echo "  3. Wait for DNS propagation (5-30 minutes)"
+        echo ""
+        echo "💡 For deployment without DNS, run:"
+        echo "  ./deploy-without-dns.sh"
+        echo ""
+        exit 1
+    }
+fi
+
 # Step 1: Install system environment
 echo "📦 Step 1: Installing system environment..."
 ./install-server.sh
