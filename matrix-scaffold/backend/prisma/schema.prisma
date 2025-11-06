@@ -23,6 +23,7 @@ model Project {
   updatedAt   DateTime @updatedAt
 
   // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobs        Job[]
   tasks       Task[]
   memories    Memory[]
@@ -259,7 +260,7 @@ model UserMemory {
 model Referral {
   id            String   @id @default(uuid())
   referrerId    String   // User who referred
-  referredUserId String? // User who was referred
+  referredUserId String? @unique // User who was referred
   token         String   @unique // Unique referral token
   status        String   @default("pending") // pending | completed | rewarded
   pointsEarned  Int      @default(0)
@@ -271,7 +272,6 @@ model Referral {
   referredUser User?    @relation("ReferredUser", fields: [referredUserId], references: [id])
 
   @@index([referrerId])
-  @@index([referredUserId])
   @@index([token])
   @@index([status])
   @@map("referrals")
