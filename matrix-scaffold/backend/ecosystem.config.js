@@ -7,9 +7,10 @@ module.exports = {
   apps: [
     {
       name: 'matrix-platform',
-      script: './dist/main.js',
-      instances: 'max', // Use all CPU cores
-      exec_mode: 'cluster',
+      script: 'npx',
+      args: 'tsx src/main.ts',
+      instances: 1, // Use single instance with tsx
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '2G',
@@ -49,4 +50,3 @@ module.exports = {
     }
   ]
 }
-
