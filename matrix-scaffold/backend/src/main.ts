@@ -6857,6 +6857,11 @@ const start = async () => {
       region: config.region,
       version: config.monitoring.version || '0.1.0'
     })
+    
+    // Signal PM2 that app is ready
+    if (process.send) {
+      process.send('ready')
+    }
 
     // Initialize WebSocket Server (after server is listening)
     try {
