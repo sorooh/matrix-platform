@@ -684,7 +684,7 @@ server.post('/api/agents/chat', async (request, reply) => {
     }
 
     const response = await agent.chat(messages)
-    
+
     return {
       reply: response.content,
       agent: agentName,
@@ -6796,11 +6796,17 @@ const start = async () => {
     })
 
     // Check database health
-    const dbHealthy = await checkDatabaseHealth()
-    if (!dbHealthy) {
-      throw new Error('Database health check failed')
+    try {
+      const dbHealthy = await checkDatabaseHealth()
+      if (!dbHealthy) {
+        logInfo('⚠️ Database health check failed, continuing anyway...')
+      } else {
+        logInfo('✅ Database connected')
+      }
+    } catch (error) {
+      logError(error as Error, { context: 'Database health check' })
+      logInfo('⚠️ Database health check error, continuing anyway...')
     }
-    logInfo('✅ Database connected')
 
     // Enable pgvector extension
     try {
@@ -6857,7 +6863,7 @@ const start = async () => {
       region: config.region,
       version: config.monitoring.version || '0.1.0'
     })
-    
+
     // Signal PM2 that app is ready
     if (process.send) {
       process.send('ready')
@@ -7151,7 +7157,7 @@ const start = async () => {
     try {
       const { initializePhase8_2 } = await import('./phase8_2/index')
       await initializePhase8_2(server)
-      
+
       logInfo('✅ Phase 8.2 - Partner & Reseller Portal initialized (100%)')
     } catch (error) {
       logError(error as Error, { context: 'Phase 8.2 initialization' })
