@@ -15,11 +15,15 @@ module.exports = {
       max_memory_restart: '2G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://matrix:matrix_password_2025@localhost:5432/matrix',
+        REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379'
       },
       env_development: {
         NODE_ENV: 'development',
-        PORT: 3000
+        PORT: 3000,
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://matrix:matrix_password_2025@localhost:5432/matrix',
+        REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379'
       },
       error_file: './logs/pm2-error.log',
       out_file: './logs/pm2-out.log',

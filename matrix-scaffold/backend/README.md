@@ -6,10 +6,19 @@
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+ (required)
 - PostgreSQL 15+ with pgvector extension
 - Redis 7+
 - Docker (optional)
+
+### Key Dependencies
+
+- **AI Providers**: OpenAI, Anthropic, Google Generative AI
+- **Web Scraping**: Puppeteer, Cheerio, Playwright
+- **Monitoring**: Prometheus (prom-client), Sentry
+- **Database**: PostgreSQL (pg), Prisma ORM
+- **Security**: bcrypt, jsonwebtoken, helmet
+- **Utilities**: axios, uuid, bull, express, compression, morgan
 
 ### Installation
 
