@@ -1,0 +1,23 @@
+========================================
+إصلاح المشكلة - تثبيت Node.js أولاً
+========================================
+
+المشكلة: Node.js و npm غير مثبتين على السيرفر
+
+الحل: شغّل هذا الأمر أولاً على السيرفر:
+
+bash << 'EOF'
+set -e
+echo "Installing Node.js and npm..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get update
+apt-get install -y nodejs
+npm install -g pm2
+echo "✅ Node.js installed: $(node --version)"
+echo "✅ npm installed: $(npm --version)"
+EOF
+
+بعدها شغّل السكريبت الأصلي مرة ثانية.
+
+========================================
+

@@ -1,0 +1,148 @@
+========================================
+إصلاح مشكلة npm و Prisma
+========================================
+
+المشكلة:
+1. package-lock.json غير موجود - استخدم npm install بدلاً من npm ci
+2. Prisma schema غير موجود - يجب التحقق من المسار
+
+الحل: شغّل هذا الأمر على السيرفر:
+
+bash << 'EOF'
+set -e
+echo "Setting up Matrix Platform..."
+cd /opt/matrix-platform
+
+# التحقق من وجود المشروع
+if [ ! -d "matrix-scaffold/backend" ]; then
+    echo "❌ Project structure not found!"
+    echo "Checking what exists..."
+    ls -la
+    exit 1
+fi
+
+# تشغيل الخدمات
+systemctl start postgresql redis-server nginx 2>/dev/null || true
+
+# إعداد قاعدة البيانات
+sudo -u postgres psql << PSQLEOF 2>/dev/null || true
+CREATE DATABASE matrix;
+CREATE USER matrix WITH ENCRYPTED PASSWORD 'matrix_password_2025';
+GRANT ALL PRIVILEGES ON DATABASE matrix TO matrix;
+\c matrix
+GRANT ALL ON SCHEMA public TO matrix;
+CREATE EXTENSION IF NOT EXISTS vector;
+\q
+PSQLEOF
+
+# الانتقال إلى مجلد backend
+cd matrix-scaffold/backend
+
+# التحقق من وجود package.json
+if [ ! -f "package.json" ]; then
+    echo "❌ package.json not found in matrix-scaffold/backend"
+    echo "Current directory: $(pwd)"
+    ls -la
+    exit 1
+fi
+
+# استخدام npm install بدلاً من npm ci
+export DATABASE_URL="postgresql://matrix:matrix_password_2025@localhost:5432/matrix"
+export NODE_ENV="production"
+
+echo "Installing dependencies..."
+npm install --omit=dev 2>&1 | grep -v "npm WARN" || true
+
+# التحقق من وجود Prisma schema
+if [ ! -f "prisma/schema.prisma" ] && [ ! -f "schema.prisma" ]; then
+    echo "⚠️ Prisma schema not found, checking..."
+    find . -name "*.prisma" -type f
+    echo "Skipping Prisma commands..."
+else
+    echo "Running Prisma migrations..."
+    npx prisma migrate deploy || true
+    npx prisma generate || true
+fi
+
+# بناء التطبيق
+echo "Building application..."
+npm run build || {
+    echo "⚠️ Build failed, checking TypeScript..."
+    command -v tsc || npm install -g typescript
+    npm run build
+}
+
+# العودة إلى المجلد الرئيسي
+cd /opt/matrix-platform
+
+# إنشاء PM2 config
+cat > pm2.ecosystem.config.js << 'PM2EOF'
+module.exports = {
+  apps: [{
+    name: 'matrix-platform',
+    script: './matrix-scaffold/backend/dist/main.js',
+    cwd: '/opt/matrix-platform',
+    instances: 2,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      DATABASE_URL: 'postgresql://matrix:matrix_password_2025@localhost:5432/matrix',
+      REDIS_URL: 'redis://localhost:6379',
+      VERSION: '11.0.0'
+    },
+    autorestart: true,
+    max_memory_restart: '1G'
+  }]
+};
+PM2EOF
+
+# تشغيل PM2
+pm2 delete matrix-platform 2>/dev/null || true
+pm2 start pm2.ecosystem.config.js
+pm2 save
+pm2 startup systemd -u root --hp /root 2>/dev/null || true
+
+# إعداد nginx
+cat > /etc/nginx/sites-available/senorbit.ai << 'NGINXEOF'
+server {
+    listen 80;
+    server_name senorbit.ai www.senorbit.ai;
+    return 301 https://$server_name$request_uri;
+}
+server {
+    listen 443 ssl http2;
+    server_name senorbit.ai www.senorbit.ai;
+    ssl_certificate /etc/letsencrypt/live/senorbit.ai/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/senorbit.ai/privkey.pem;
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location /health {
+        proxy_pass http://localhost:3000/health;
+        access_log off;
+    }
+}
+NGINXEOF
+
+ln -sf /etc/nginx/sites-available/senorbit.ai /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+
+# إعداد SSL
+[ ! -f "/etc/letsencrypt/live/senorbit.ai/fullchain.pem" ] && \
+certbot --nginx -d senorbit.ai -d www.senorbit.ai \
+    --non-interactive --agree-tos --email admin@senorbit.ai \
+    --redirect --quiet 2>/dev/null || true
+
+# الانتظار والتحقق
+sleep 5
+echo ""
+echo "Testing health endpoint..."
+curl -s http://localhost:3000/health && echo "" && echo "✅ Done! Test: curl https://senorbit.ai/health" || echo "⚠️ Health check failed, check PM2 logs: pm2 logs matrix-platform"
+EOF
+

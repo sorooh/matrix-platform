@@ -1,0 +1,168 @@
+{
+  "recommendations": [
+    // ============================================
+    // ESSENTIAL - Code Quality & Type Safety
+    // ============================================
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+
+    // ============================================
+    // ERROR DETECTION & PREVENTION - قوي للـ Agent
+    // ============================================
+    "usernamehw.errorlens",
+    "sonarsource.sonarlint-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "yoavbls.pretty-ts-errors",
+    "wallabyjs.console-ninja",
+    "ms-vscode.vscode-json",
+
+    // ============================================
+    // TYPE SAFETY & INTELLISENSE - يمنع الأخطاء
+    // ============================================
+    "bradlc.vscode-tailwindcss",
+    "christian-kohler.path-intellisense",
+    "christian-kohler.npm-intellisense",
+    "formulahendry.auto-rename-tag",
+    "ms-vscode.vscode-typescript-next",
+    "orta.vscode-jest",
+    "firsttris.vscode-jest-runner",
+
+    // ============================================
+    // CODE ANALYSIS & QUALITY - يكتشف المشاكل
+    // ============================================
+    "streetsidesoftware.code-spell-checker",
+    "streetsidesoftware.code-spell-checker-arabic",
+    "davidanson.vscode-markdownlint",
+    "editorconfig.editorconfig",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-json",
+
+    // ============================================
+    // TESTING & VALIDATION - يختبر الكود
+    // ============================================
+    "firsttris.vscode-jest-runner",
+    "orta.vscode-jest",
+    "kavod-io.vscode-jest-test-adapter",
+    "hbenl.vscode-test-explorer",
+
+    // ============================================
+    // GIT & VERSION CONTROL - يمنع المشاكل
+    // ============================================
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+
+    // ============================================
+    // DATABASE & PRISMA - للـ Database
+    // ============================================
+    "prisma.prisma",
+    "prisma.prisma-insider",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "cweijan.vscode-database-client2",
+
+    // ============================================
+    // DOCKER & DEPLOYMENT
+    // ============================================
+    "ms-azuretools.vscode-docker",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+    // ============================================
+    // AI & CODE INTELLIGENCE - للـ Agent
+    // ============================================
+    "github.copilot",
+    "github.copilot-chat",
+    "github.vscode-pull-request-github",
+    "tabnine.tabnine-vscode",
+
+    // ============================================
+    // DOCUMENTATION & COMMENTS - يكتب توثيق
+    // ============================================
+    "aaron-bond.better-comments",
+    "yzhang.markdown-all-in-one",
+    "shd101wyy.markdown-preview-enhanced",
+    "bierner.markdown-preview-github-styles",
+
+    // ============================================
+    // PRODUCTIVITY & SHORTCUTS
+    // ============================================
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "christian-kohler.npm-intellisense",
+    "eg2.vscode-npm-script",
+    "ms-vscode.powershell",
+
+    // ============================================
+    // SECURITY & VULNERABILITIES - يكتشف الثغرات
+    // ============================================
+    "sonarsource.sonarlint-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "snyk-security.snyk-vulnerability-scanner",
+
+    // ============================================
+    // PERFORMANCE & MONITORING
+    // ============================================
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-azuretools.vscode-docker",
+
+    // ============================================
+    // THEMES (Optional)
+    // ============================================
+    "pkief.material-icon-theme",
+    "zhuangtongfa.material-theme",
+
+    // ============================================
+    // ADDITIONAL QUALITY TOOLS
+    // ============================================
+    "bierner.color-info",
+    "oderwat.indent-rainbow",
+    "wayou.vscode-todo-highlight",
+    "gruntfuggly.todo-tree",
+    "shardulm94.trailing-spaces",
+    "editorconfig.editorconfig",
+
+    // ============================================
+    // TERMINAL & SERVER MANAGEMENT - للـ Agent
+    // ============================================
+    "formulahendry.auto-rename-tag",
+    "ms-vscode.remote-repositories",
+    "ms-vscode.remote-ssh",
+    "ms-vscode.remote-ssh-edit",
+    "ms-vscode.remote-containers",
+    "ms-vscode-remote.remote-ssh",
+    "tabnine.tabnine-vscode",
+
+    // ============================================
+    // LIVE PREVIEW & BROWSER - يشوف اللي عم يصير
+    // ============================================
+    "ms-vscode.live-server",
+    "auchenberg.vscode-browser-preview",
+    "ms-vscode.vscode-json",
+    "ritwickdey.liveserver",
+    "ms-vscode.live-server",
+    "ms-playwright.playwright",
+
+    // ============================================
+    // SESSION PERSISTENCE - يبقى حتى لو اتسكر
+    // ============================================
+    "alefragnani.project-manager",
+    "alefragnani.bookmarks",
+    "gruntfuggly.todo-tree",
+    "eamodio.gitlens",
+
+    // ============================================
+    // CHAT HISTORY & PERSISTENCE - الدردشات تبقى
+    // ============================================
+    "github.copilot-chat",
+    "github.copilot",
+    "tabnine.tabnine-vscode"
+  ],
+  "unwantedRecommendations": [
+    "hookyqr.beautify",
+    "ms-vscode.vscode-typescript"
+  ]
+}

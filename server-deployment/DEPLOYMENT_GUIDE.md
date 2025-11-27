@@ -13,7 +13,7 @@
 ### Access Credentials
 - **Server IP**: 46.224.42.221
 - **User**: root
-- **Password**: q7KUVagNFehLNtUeW3un
+- **Password**: aiadsham
 - **Domain**: senorbit.ai
 
 ### Important Notes

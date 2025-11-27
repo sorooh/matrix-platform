@@ -42,7 +42,7 @@
 ssh root@46.224.42.221
 
 # إذا كان السيرفر جاهز، سيطلب كلمة المرور:
-# Password: q7KUVagNFehLNtUeW3un
+# Password: aiadsham
 ```
 
 ---

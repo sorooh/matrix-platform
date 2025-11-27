@@ -3,7 +3,7 @@
 
 **Server**: 46.224.42.221  
 **Domain**: senorbit.ai  
-**Password**: q7KUVagNFehLNtUeW3un
+**Password**: aiadsham
 
 ---
 
@@ -30,7 +30,7 @@ ssh -o StrictHostKeyChecking=no root@46.224.42.221 "bash -s" < deploy-remote.sh
 ssh -o StrictHostKeyChecking=no root@46.224.42.221 "bash -s" < deploy-remote.sh
 ```
 
-**When prompted for password, enter**: `q7KUVagNFehLNtUeW3un`
+**When prompted for password, enter**: `aiadsham`
 
 ---
 
@@ -55,7 +55,7 @@ scp deploy-remote.sh root@46.224.42.221:/tmp/
 ssh root@46.224.42.221 "bash /tmp/deploy-remote.sh"
 ```
 
-**Password**: `q7KUVagNFehLNtUeW3un`
+**Password**: `aiadsham`
 
 ---
 

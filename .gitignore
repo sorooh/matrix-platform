@@ -13,7 +13,10 @@ matrix-platform.zip
 *.sqlite3
 coverage/
 .nyc_output/
-.vscode/
+# .vscode/
+# Keep .vscode settings but ignore user-specific
+.vscode/settings.json.user
+.vscode/launch.json.user
 .idea/
 *.swp
 *.swo
@@ -21,4 +24,5 @@ coverage/
 .DS_Store
 Thumbs.db
 
-
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor\rules\snyk_rules.mdc

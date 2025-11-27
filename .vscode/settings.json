@@ -1,0 +1,441 @@
+{
+  // ============================================
+  // CURSOR PROFESSIONAL SETTINGS
+  // إعدادات احترافية قوية للمشاريع المعقدة
+  // ============================================
+
+  // Editor Settings - Performance
+  "editor.fontSize": 14,
+  "editor.fontFamily": "'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace",
+  "editor.fontLigatures": true,
+  "editor.lineHeight": 24,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.wordWrap": "on",
+  "editor.rulers": [80, 120],
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
+  "editor.smoothScrolling": true,
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.removeUnusedImports": "explicit"
+  },
+
+  // Performance - Handle Large Files
+  "editor.largeFileOptimizations": true,
+  "editor.maxTokenizationLineLength": 20000,
+  "files.maxMemoryForLargeFilesMB": 4096,
+  "editor.semanticHighlighting.enabled": true,
+
+  // TypeScript Settings
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.format.enable": true,
+  "typescript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.variableTypes.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  // JavaScript Settings
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "javascript.suggest.autoImports": true,
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.format.enable": true,
+  "javascript.inlayHints.parameterNames.enabled": "all",
+  "javascript.inlayHints.variableTypes.enabled": true,
+
+  // Files Settings
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "**/.nyc_output": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.next/**": true,
+    "**/coverage/**": true
+  },
+  "files.maxMemoryForLargeFilesMB": 4096,
+
+  // Search Settings
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "**/.git": true,
+    "**/package-lock.json": true,
+    "**/yarn.lock": true
+  },
+  "search.useIgnoreFiles": true,
+  "search.useGlobalIgnoreFiles": true,
+
+  // Terminal Settings - Persistent Sessions
+  "terminal.integrated.fontSize": 13,
+  "terminal.integrated.fontFamily": "'Fira Code', 'Cascadia Code', 'Consolas', monospace",
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.cursorStyle": "line",
+  "terminal.integrated.scrollback": 50000,
+  "terminal.integrated.copyOnSelection": true,
+  "terminal.integrated.persistentSessionReviveProcess": "onExit",
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.persistentSessionScrollback": 50000,
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell",
+      "args": ["-NoExit", "-Command", "cd '${workspaceFolder}'"]
+    },
+    "Command Prompt": {
+      "path": [
+        "${env:windir}\\System32\\cmd.exe"
+      ],
+      "args": ["/K", "cd /d ${workspaceFolder}"],
+      "icon": "terminal-cmd"
+    },
+    "Git Bash": {
+      "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "args": ["--login"],
+      "icon": "terminal-bash"
+    }
+  },
+  "terminal.integrated.tabs.enabled": true,
+  "terminal.integrated.tabs.showActiveTerminal": "always",
+  "terminal.integrated.tabs.showActions": "always",
+  "terminal.integrated.automationProfile.windows": {
+    "path": "powershell.exe"
+  },
+
+  // Terminal History & Persistence
+  "terminal.integrated.enableMultiLinePasteWarning": false,
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+
+  // Git Settings
+  "git.enabled": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.suggestSmartCommit": true,
+  "git.autoRepositoryDetection": true,
+  "git.decorations.enabled": true,
+  "git.mergeEditor": true,
+
+  // Extensions Settings
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.format.enable": true,
+  "eslint.codeActionsOnSave.mode": "all",
+
+  "prettier.enable": true,
+  "prettier.requireConfig": true,
+  "prettier.useEditorConfig": true,
+
+  // Language Specific
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on"
+  },
+  "[powershell]": {
+    "editor.defaultFormatter": "ms-vscode.PowerShell",
+    "editor.formatOnSave": true
+  },
+
+  // Cursor AI Settings
+  "cursor.general.enableAutoSave": true,
+  "cursor.chat.enableCodeActions": true,
+  "cursor.chat.enableInlineEdit": true,
+
+  // Performance Optimizations
+  "extensions.autoCheckUpdates": true,
+  "extensions.autoUpdate": true,
+  "workbench.enableExperiments": false,
+  "workbench.settings.enableNaturalLanguageSearch": false,
+
+  // UI Settings
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.iconTheme": "vs-seti",
+  "workbench.startupEditor": "newUntitledFile",
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "workbench.editor.closeOnFileDelete": true,
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.tree.indent": 20,
+
+  // Breadcrumbs
+  "breadcrumbs.enabled": true,
+  "breadcrumbs.filePath": "on",
+  "breadcrumbs.symbolPath": "on",
+
+  // IntelliSense
+  "editor.quickSuggestions": {
+    "other": "on",
+    "comments": "off",
+    "strings": "on"
+  },
+  "editor.suggestSelection": "first",
+  "editor.suggest.localityBonus": true,
+  "editor.suggest.showKeywords": true,
+  "editor.suggest.showSnippets": true,
+  "editor.suggest.showClasses": true,
+  "editor.suggest.showFunctions": true,
+  "editor.suggest.showVariables": true,
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.tabCompletion": "on",
+
+  // Error Lens - قوي للـ Agent
+  "errorLens.enabled": true,
+  "errorLens.enabledDiagnosticLevels": ["error", "warning", "info"],
+  "errorLens.followCursor": "allLines",
+  "errorLens.gutterIconsEnabled": true,
+  "errorLens.messageTemplate": "$message [$source]",
+  "errorLens.messageBackgroundMode": "message",
+  "errorLens.messageDelay": 0,
+  "errorLens.statusBarClickBehavior": "goToNext",
+
+  // SonarLint - يكتشف المشاكل
+  "sonarlint.pathToNodeExecutable": "node",
+  "sonarlint.rules": {
+    "typescript:S1481": "off",
+    "typescript:S1116": "off"
+  },
+
+  // Pretty TypeScript Errors - يوضح الأخطاء
+  "pretty-ts-errors.enabled": true,
+  "pretty-ts-errors.showInStatusbar": true,
+
+  // Console Ninja - للـ Debugging
+  "console-ninja.enabled": true,
+
+  // Better Comments - توثيق أفضل
+  "better-comments.highlightPlainText": true,
+
+  // Todo Tree - يكتشف TODO/FIXME
+  "todo-tree.general.tags": [
+    "BUG",
+    "HACK",
+    "FIXME",
+    "TODO",
+    "XXX",
+    "[ ]",
+    "[x]"
+  ],
+  "todo-tree.highlights.customHighlight": {
+    "TODO": {
+      "foreground": "#ff6c6b",
+      "background": "#ff6c6b",
+      "iconColour": "#ff6c6b"
+    },
+    "FIXME": {
+      "foreground": "#ff6c6b",
+      "background": "#ff6c6b",
+      "iconColour": "#ff6c6b"
+    },
+    "BUG": {
+      "foreground": "#ff6c6b",
+      "background": "#ff6c6b",
+      "iconColour": "#ff6c6b"
+    }
+  },
+
+  // Trailing Spaces - يزيل المسافات الزائدة
+  "trailing-spaces.highlightCurrentLine": true,
+  "trailing-spaces.trimOnSave": true,
+
+  // Jest - للـ Testing
+  "jest.autoRun": "off",
+  "jest.showCoverageOnLoad": true,
+  "jest.runMode": "on-demand",
+
+  // Spell Checker - يكتشف الأخطاء الإملائية
+  "cSpell.enabled": true,
+  "cSpell.enableFiletypes": [
+    "typescript",
+    "javascript",
+    "json",
+    "markdown"
+  ],
+  "cSpell.ignoreWords": [
+    "nanoid",
+    "pgvector",
+    "fastify",
+    "prisma"
+  ],
+
+  // Auto Import
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.preferences.includePackageJsonAutoImports": "on",
+
+  // ============================================
+  // LIVE PREVIEW & BROWSER - يشوف اللي عم يصير
+  // ============================================
+  "liveServer.settings.donotShowInfoMsg": true,
+  "liveServer.settings.donotVerifyTags": true,
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.fullReload": true,
+  "liveServer.settings.wait": 500,
+  "liveServer.settings.host": "localhost",
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "**/*.js"
+  ],
+
+  // Browser Preview
+  "browser-preview.startUrl": "http://localhost:3000",
+  "browser-preview.chromeExecutable": "",
+  "browser-preview.format": "jpeg",
+  "browser-preview.lowQuality": false,
+
+  // Playwright
+  "playwright.reuseBrowser": true,
+  "playwright.showTrace": true,
+
+  // ============================================
+  // SESSION PERSISTENCE - يبقى حتى لو اتسكر
+  // ============================================
+  "files.hotExit": "onExitAndWindowClose",
+  "files.restoreUndoStack": true,
+  "workbench.editor.restoreViewState": true,
+  "workbench.localHistory.enabled": true,
+  "workbench.localHistory.maxFileSize": 256,
+  "workbench.localHistory.maxFileEntries": 50,
+  "workbench.localHistory.exclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true
+  },
+
+  // Project Manager - يحفظ المشاريع
+  "projectManager.git.baseFolders": [
+    "${home}/projects",
+    "${workspaceFolder}"
+  ],
+  "projectManager.git.ignoredFolders": [
+    "node_modules",
+    "dist",
+    "build"
+  ],
+  "projectManager.git.maxDepthRecursion": 4,
+  "projectManager.sortList": "Recent",
+
+  // Bookmarks - يحفظ الأماكن المهمة
+  "bookmarks.saveBookmarksInProject": true,
+  "bookmarks.navigateThroughAllFiles": true,
+  "bookmarks.wrapNavigation": true,
+  "bookmarks.mult cursor": true,
+
+  // ============================================
+  // CHAT HISTORY & PERSISTENCE - الدردشات تبقى
+  // ============================================
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": true,
+    "markdown": true,
+    "typescript": true,
+    "javascript": true
+  },
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.chat.enableCodeActions": true,
+  "github.copilot.chat.enableInlineEdit": true,
+
+  // Tabnine
+  "tabnine.experimentalAutoImports": true,
+  "tabnine.receiveBetaChannelUpdates": true,
+
+  // ============================================
+  // REMOTE & SERVER - للـ Agent
+  // ============================================
+  "remote.SSH.remotePlatform": {
+    "46.224.42.221": "linux"
+  },
+  "remote.SSH.configFile": "${env:USERPROFILE}\\.ssh\\config",
+  "remote.SSH.useLocalServer": false,
+  "remote.SSH.enableDynamicForwarding": true,
+  "remote.SSH.enableX11Forwarding": false,
+  "remote.SSH.connectTimeout": 60,
+  "remote.SSH.serverInstallTimeout": 120,
+
+  // Remote Containers
+  "remote.containers.defaultExtensions": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next"
+  ],
+
+  // ============================================
+  // WORKSPACE PERSISTENCE
+  // ============================================
+  "workbench.startupEditor": "none",
+  "workbench.editor.closeOnFileDelete": false,
+  "workbench.editor.highlightModifiedTabs": true,
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 20,
+  "workbench.editor.limit.perEditorGroup": true,
+
+  // State persistence
+  "workbench.state.alwaysRestore": true,
+  "window.restoreWindows": "all"
+}

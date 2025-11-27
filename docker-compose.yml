@@ -1,5 +1,6 @@
 # Matrix Platform - Docker Compose
 # Global-Ready Architecture with PostgreSQL + Redis
+# Professional Production-Ready Configuration
 
 version: '3.8'
 
@@ -11,23 +12,70 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-matrix}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-matrix}
       POSTGRES_DB: ${POSTGRES_DB:-matrix}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matrix}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matrix} -d ${POSTGRES_DB:-matrix}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - matrix-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=1GB"
+      - "-c"
+      - "effective_cache_size=3GB"
+      - "-c"
+      - "maintenance_work_mem=256MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=10MB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
 
   redis:
     image: redis:7-alpine
     container_name: matrix-redis
+    command: >
+      redis-server
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 60 1000
+      --save 300 100
+      --save 900 1
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -35,22 +83,78 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - matrix-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
 
   backend:
     build:
       context: ./matrix-scaffold/backend
       dockerfile: ../../Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-production}
     container_name: matrix-backend
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-matrix}:${POSTGRES_PASSWORD:-matrix}@postgres:5432/${POSTGRES_DB:-matrix}
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-matrix}:${POSTGRES_PASSWORD:-matrix}@postgres:5432/${POSTGRES_DB:-matrix}?schema=public&connection_limit=20&pool_timeout=30
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_TIMEOUT: ${DB_TIMEOUT:-30000}
+
+      # Redis
       REDIS_URL: redis://redis:6379
-      NODE_ENV: ${NODE_ENV:-development}
+      REDIS_MAX_RETRIES: ${REDIS_MAX_RETRIES:-5}
+
+      # Server
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      HOST: ${HOST:-0.0.0.0}
       REGION: ${REGION:-us-east-1}
-      PORT: 3000
+
+      # API
+      API_URL: ${API_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-1000}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+
+      # Security
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
+      # AI (Optional)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # AWS (Optional)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+
+      # Integrations (Optional)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+
+      # Feature Flags
+      ENABLE_PGVECTOR: ${ENABLE_PGVECTOR:-true}
+      ENABLE_REDIS: ${ENABLE_REDIS:-true}
+      ENABLE_SENTRY: ${ENABLE_SENTRY:-false}
+      ENABLE_SLACK: ${ENABLE_SLACK:-false}
+      ENABLE_GITHUB: ${ENABLE_GITHUB:-false}
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,15 +163,39 @@ services:
     volumes:
       - ./matrix-scaffold/backend/logs:/app/logs
       - ./matrix-scaffold/storage:/app/storage
+      - ./matrix-scaffold/backend/src:/app/src:ro
     networks:
       - matrix-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '2.0'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
 
 networks:
   matrix-network:
     driver: bridge
-
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

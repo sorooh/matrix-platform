@@ -43,7 +43,7 @@ The server is still being created:
 ssh root@46.224.42.221
 
 # If connection works, you'll be prompted for password:
-# Password: q7KUVagNFehLNtUeW3un
+# Password: aiadsham
 ```
 
 ### Step 4: Deploy Application

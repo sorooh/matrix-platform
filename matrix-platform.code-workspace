@@ -1,0 +1,94 @@
+{
+  "folders": [
+    {
+      "name": "Matrix Platform",
+      "path": "."
+    },
+    {
+      "name": "Backend",
+      "path": "./matrix-scaffold/backend"
+    },
+    {
+      "name": "Frontend",
+      "path": "./matrix-scaffold/frontend"
+    }
+  ],
+  "settings": {
+    // Workspace-specific settings
+    "files.exclude": {
+      "**/.git": true,
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.git": true
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "terminal.integrated.persistentSessionReviveProcess": "onExit",
+    "files.hotExit": "onExitAndWindowClose",
+    "workbench.localHistory.enabled": true
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "usernamehw.errorlens",
+      "sonarsource.sonarlint-vscode",
+      "ms-vscode.live-server",
+      "auchenberg.vscode-browser-preview",
+      "eamodio.gitlens",
+      "github.copilot",
+      "github.copilot-chat"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Dev Server",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder}/matrix-scaffold/backend"
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "Start Live Server",
+        "type": "shell",
+        "command": "live-server --port=5500 --open=/",
+        "isBackground": true,
+        "problemMatcher": []
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug Backend",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev:debug"],
+        "cwd": "${workspaceFolder}/matrix-scaffold/backend",
+        "console": "integratedTerminal",
+        "serverReadyAction": {
+          "pattern": "listening on port ([0-9]+)",
+          "uriFormat": "http://localhost:%s",
+          "action": "openExternally"
+        }
+      }
+    ]
+  }
+}

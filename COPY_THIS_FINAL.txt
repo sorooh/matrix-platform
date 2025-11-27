@@ -1,0 +1,26 @@
+bash << 'EOF'
+set -e
+cd /opt/matrix-platform
+git stash
+git pull origin master
+cd matrix-scaffold/backend
+head -n 1495 prisma/schema.prisma > prisma/schema.prisma.fixed
+mv prisma/schema.prisma.fixed prisma/schema.prisma
+rm -f package-lock.json
+rm -rf node_modules
+npm install --production --legacy-peer-deps 2>&1 | grep -v "npm WARN" || true
+export DATABASE_URL="postgresql://matrix:matrix_password_2025@localhost:5432/matrix"
+export REDIS_URL="redis://localhost:6379"
+export NODE_ENV="production"
+export PORT="3000"
+npx prisma generate
+npx prisma migrate deploy || true
+npm run build
+cd /opt/matrix-platform
+pm2 delete matrix-platform 2>/dev/null || true
+pm2 start pm2.ecosystem.config.js
+pm2 save
+systemctl reload nginx
+sleep 5
+curl http://localhost:3000/health && echo "✅ Done!"
+EOF

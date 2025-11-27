@@ -1,0 +1,21 @@
+{
+  "liveServer.settings.donotShowInfoMsg": true,
+  "liveServer.settings.donotVerifyTags": true,
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/matrix-scaffold/frontend/dist",
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.fullReload": true,
+  "liveServer.settings.wait": 500,
+  "liveServer.settings.host": "localhost",
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "**/*.js",
+    "node_modules/**",
+    "dist/**",
+    "build/**"
+  ],
+  "liveServer.settings.file": "index.html"
+}

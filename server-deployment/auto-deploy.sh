@@ -7,7 +7,7 @@ set -e
 
 SERVER_IP="46.224.42.221"
 SERVER_USER="root"
-SERVER_PASSWORD="q7KUVagNFehLNtUeW3un"
+SERVER_PASSWORD="aiadsham"
 DOMAIN="senorbit.ai"
 
 echo "🚀 Auto Deploying Matrix Platform v11.0.0..."

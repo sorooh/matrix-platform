@@ -35,7 +35,7 @@ cd C:\Users\Zulik\matrix-platform\server-deployment
 # Run deployment
 ssh root@46.224.42.221 "bash -s" < deploy-remote.sh
 
-# Password: q7KUVagNFehLNtUeW3un
+# Password: aiadsham
 ```
 
 ### Option 2: Step-by-Step Deployment

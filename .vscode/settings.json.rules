@@ -1,0 +1,28 @@
+# Cursor AI Agent Rules - قواعد للـ Agent عشان ما يكزب
+# Rules for AI Agent to prevent errors
+
+## Type Safety Rules
+- Always use TypeScript strict mode
+- Never use `any` type - use `unknown` instead
+- Always validate input types
+- Use type guards for runtime checks
+
+## Error Handling Rules
+- Always use try-catch for async operations
+- Never ignore errors silently
+- Always log errors with context
+- Use proper error types
+
+## Code Quality Rules
+- Run ESLint before committing
+- Run Prettier for formatting
+- Check TypeScript errors before saving
+- Run tests before pushing
+
+## Best Practices
+- Use const instead of let when possible
+- Prefer arrow functions
+- Use async/await instead of promises
+- Validate all user inputs
+- Sanitize database queries
+- Use environment variables for secrets

@@ -30,7 +30,7 @@ This will:
 
 ```bash
 ssh root@46.224.42.221
-# Password: q7KUVagNFehLNtUeW3un
+# Password: aiadsham
 ```
 
 ### Step 2: Clone Repository

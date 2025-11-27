@@ -19,7 +19,7 @@ ssh root@46.224.42.221 "cd /opt && git clone https://github.com/sorooh/matrix-pl
 ### 1. Connect to Server
 ```bash
 ssh root@46.224.42.221
-# Password: q7KUVagNFehLNtUeW3un
+# Password: aiadsham
 ```
 
 ### 2. Clone Repository
