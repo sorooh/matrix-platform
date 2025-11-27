@@ -5,7 +5,7 @@
  */
 
 import { logger } from '../config/logger'
-import * as promClient from 'prom-client'
+import promClient from 'prom-client'
 
 // Create Prometheus Registry
 const register = new promClient.Registry()
@@ -206,4 +206,3 @@ export function recordError(type: string, severity: string): void {
     logger.error('Failed to record error:', error)
   }
 }
-
