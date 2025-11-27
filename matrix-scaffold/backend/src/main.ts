@@ -7377,4 +7377,11 @@ process.on('SIGINT', async () => {
 })
 
 // Start application
-start()
+start().catch((error) => {
+  logError(error as Error, { context: 'startup - unhandled' })
+  captureException(error as Error, { context: 'startup - unhandled' })
+  // Don't exit immediately, let PM2 handle it
+  setTimeout(() => {
+    process.exit(1)
+  }, 5000)
+})
