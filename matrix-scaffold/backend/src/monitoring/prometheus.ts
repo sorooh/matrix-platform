@@ -5,7 +5,8 @@
  */
 
 import { logger } from '../config/logger'
-import promClient from 'prom-client'
+// @ts-ignore - prom-client doesn't have proper TypeScript exports
+const promClient = require('prom-client')
 
 // Create Prometheus Registry
 const register = new promClient.Registry()
