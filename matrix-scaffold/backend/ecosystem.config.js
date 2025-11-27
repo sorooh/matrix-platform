@@ -32,7 +32,7 @@ module.exports = {
       time: true,
       merge_logs: true,
       kill_timeout: 5000,
-      wait_ready: true,
+      wait_ready: false, // Disabled - app doesn't send ready signal
       listen_timeout: 10000,
       shutdown_with_message: true,
       // Advanced settings
