@@ -5,78 +5,78 @@
  */
 
 import { logger } from '../config/logger'
-import { client } from 'prom-client'
+import * as promClient from 'prom-client'
 
 // Create Prometheus Registry
-const register = new client.Registry()
+const register = new promClient.Registry()
 
 // Default metrics (CPU, memory, etc.)
-client.collectDefaultMetrics({ register })
+promClient.collectDefaultMetrics({ register })
 
 // Custom Metrics
-export const httpRequestDuration = new client.Histogram({
+export const httpRequestDuration = new promClient.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'status'],
   buckets: [0.1, 0.5, 1, 2, 5, 10]
 })
 
-export const httpRequestTotal = new client.Counter({
+export const httpRequestTotal = new promClient.Counter({
   name: 'http_requests_total',
   help: 'Total number of HTTP requests',
   labelNames: ['method', 'route', 'status']
 })
 
-export const activeConnections = new client.Gauge({
+export const activeConnections = new promClient.Gauge({
   name: 'active_connections',
   help: 'Number of active connections'
 })
 
-export const databaseQueryDuration = new client.Histogram({
+export const databaseQueryDuration = new promClient.Histogram({
   name: 'database_query_duration_seconds',
   help: 'Duration of database queries in seconds',
   labelNames: ['operation', 'table'],
   buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5]
 })
 
-export const cacheHitRate = new client.Gauge({
+export const cacheHitRate = new promClient.Gauge({
   name: 'cache_hit_rate',
   help: 'Cache hit rate (0-1)'
 })
 
-export const agentExecutionDuration = new client.Histogram({
+export const agentExecutionDuration = new promClient.Histogram({
   name: 'agent_execution_duration_seconds',
   help: 'Duration of agent executions in seconds',
   labelNames: ['agent_type', 'status'],
   buckets: [0.5, 1, 2, 5, 10, 30, 60]
 })
 
-export const agentExecutionTotal = new client.Counter({
+export const agentExecutionTotal = new promClient.Counter({
   name: 'agent_executions_total',
   help: 'Total number of agent executions',
   labelNames: ['agent_type', 'status']
 })
 
-export const jobDuration = new client.Histogram({
+export const jobDuration = new promClient.Histogram({
   name: 'job_duration_seconds',
   help: 'Duration of jobs in seconds',
   labelNames: ['job_type', 'status'],
   buckets: [1, 5, 10, 30, 60, 300, 600]
 })
 
-export const jobTotal = new client.Counter({
+export const jobTotal = new promClient.Counter({
   name: 'jobs_total',
   help: 'Total number of jobs',
   labelNames: ['job_type', 'status']
 })
 
-export const memoryUsage = new client.Gauge({
+export const memoryUsage = new promClient.Gauge({
   name: 'memory_usage_bytes',
   help: 'Memory usage in bytes',
   labelNames: ['type']
 })
 
-export const errorTotal = new client.Counter({
+export const errorTotal = new promClient.Counter({
   name: 'errors_total',
   help: 'Total number of errors',
   labelNames: ['type', 'severity']
