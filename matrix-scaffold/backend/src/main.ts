@@ -6727,8 +6727,16 @@ const start = async () => {
 
     // Register health routes before starting server
     try {
-      registerHealthRoutes(server)
-      logInfo('✅ Health routes registered')
+      const healthAlready = typeof (server as any).hasRoute === 'function'
+        ? (server as any).hasRoute({ method: 'GET', url: '/health' })
+        : false
+
+      if (!healthAlready) {
+        registerHealthRoutes(server)
+        logInfo('✅ Health routes registered')
+      } else {
+        logInfo('ℹ️ Health routes already registered - skipping duplicate registration')
+      }
     } catch (error) {
       logError(error as Error, { context: 'registerHealthRoutes' })
       // Add basic health route as fallback
