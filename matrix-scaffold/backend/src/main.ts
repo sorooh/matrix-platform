@@ -4256,19 +4256,8 @@ server.get('/api/governance/pending', async (request, reply) => {
   }
 })
 
-server.get('/api/governance/policies', async (request, reply) => {
-  try {
-    const policies = governanceLayer.getAllPolicies()
-
-    return {
-      success: true,
-      policies,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'GET /api/governance/policies' })
-    return reply.status(500).send({ error: 'Failed to get policies' })
-  }
-})
+// Note: GET /api/governance/policies is already defined at line 1389, removing duplicate
+// server.get('/api/governance/policies', ...) - DUPLICATE REMOVED
 
 server.post('/api/governance/policies', async (request, reply) => {
   try {
