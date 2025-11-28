@@ -18,7 +18,7 @@ async function start() {
     const PORT = Number(process.env.PORT || 3000)
     await server.listen({ port: PORT, host: '0.0.0.0' })
     console.log(`✅ Simple server listening on http://localhost:${PORT}`)
-    
+
     // Signal PM2 that app is ready
     if (process.send) {
       process.send('ready')
@@ -31,4 +31,3 @@ async function start() {
 }
 
 start()
-
