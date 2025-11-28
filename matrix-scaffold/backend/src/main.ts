@@ -1092,7 +1092,8 @@ server.delete('/api/rbac/users/:userId/projects/:projectId', async (request, rep
 
 // Phase 3 - Enterprise-Grade System API
 import { securitySystem } from './enterprise/security'
-import { getPrometheusMetrics, recordHTTPRequest, recordAgentExecution, recordJob, updateMemoryUsage, updateCacheHitRate, updateActiveConnections } from './monitoring/prometheus'
+import { getPrometheusMetrics } from './monitoring/prometheus'
+// Note: recordHTTPRequest, recordAgentExecution, etc. are already imported at the top
 import { advancedCache } from './performance/cache'
 import { performanceOptimizer } from './performance/optimizer'
 import { loadBalancer } from './scalability/loadBalancer'
