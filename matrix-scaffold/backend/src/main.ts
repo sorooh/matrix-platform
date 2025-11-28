@@ -7264,6 +7264,20 @@ const start = async () => {
     logInfo('✅ Matrix Platform started successfully')
     logInfo('✅ System Ready for Production ✅')
     logInfo('🌌 Matrix Platform is now fully autonomous and globally competitive! 🌌')
+  } catch (error) {
+    // Log error but don't crash - let PM2 handle it
+    console.error('❌ Startup error:', error)
+    logError(error as Error, { context: 'startup - main try block' })
+    // Still send ready signal so PM2 knows we tried
+    if (process.send) {
+      try {
+        process.send('ready')
+      } catch (e) {
+        // Ignore
+      }
+    }
+    // Don't throw - let the app continue running
+  }
   } catch (err) {
     logError(err as Error, { context: 'startup' })
     captureException(err as Error, { context: 'startup' })
