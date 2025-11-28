@@ -4256,26 +4256,8 @@ server.get('/api/governance/pending', async (request, reply) => {
   }
 })
 
-// Note: GET /api/governance/policies is already defined at line 1389, removing duplicate
-// server.get('/api/governance/policies', ...) - DUPLICATE REMOVED
-
-server.post('/api/governance/policies', async (request, reply) => {
-  try {
-    const body = request.body as any
-    const policy = body?.policy
-
-    if (!policy) {
-      return reply.status(400).send({ error: 'policy required' })
-    }
-
-    governanceLayer.addPolicy(policy)
-
-    return { success: true }
-  } catch (error: any) {
-    logError(error as Error, { context: 'POST /api/governance/policies' })
-    return reply.status(500).send({ error: 'Failed to add policy' })
-  }
-})
+// Note: GET and POST /api/governance/policies are already defined at lines 1389 and 1363
+// Removing duplicate routes here to avoid FST_ERR_DUPLICATED_ROUTE error
 
 server.get('/api/governance/report', async (request, reply) => {
   try {
