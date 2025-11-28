@@ -35,7 +35,7 @@ import { prisma, enablePgVector, checkDatabaseHealth, disconnectDatabase } from 
 import { redis, checkRedisHealth, disconnectRedis } from './config/redis'
 import { logger, logError, logInfo } from './config/logger'
 import { captureException, Sentry } from './config/sentry'
-import { validateConfig } from './config/app'
+import { config, validateConfig } from './config/app'
 
 // Initialize server with logging
 const server = Fastify({
