@@ -6349,64 +6349,9 @@ server.post('/api/admin/cache/clear', async (request, reply) => {
 })
 
 // Phase 7.3.1: Advanced Analytics API Endpoints
-server.post('/api/admin/analytics/report', async (request, reply) => {
-  try {
-    const body = request.body as any
-    const type = body?.type || 'daily'
-    const periodStart = body?.periodStart ? new Date(body.periodStart) : new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const periodEnd = body?.periodEnd ? new Date(body.periodEnd) : new Date()
-    const templateId = body?.templateId
-    const generatedBy = body?.generatedBy
-
-    const report = await advancedAnalytics.generateReport(type, periodStart, periodEnd, templateId, generatedBy)
-
-    return {
-      success: true,
-      report,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'POST /api/admin/analytics/report' })
-    return reply.status(500).send({ error: 'Failed to generate report' })
-  }
-})
-
-server.get('/api/admin/analytics/reports', async (request, reply) => {
-  try {
-    const query = request.query as any
-    const type = query?.type
-    const limit = query?.limit ? parseInt(query.limit) : 100
-
-    const reports = advancedAnalytics.getReports(type, limit)
-
-    return {
-      success: true,
-      reports,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'GET /api/admin/analytics/reports' })
-    return reply.status(500).send({ error: 'Failed to get reports' })
-  }
-})
-
-server.get('/api/admin/analytics/reports/:reportId', async (request, reply) => {
-  try {
-    const reportId = (request.params as any).reportId
-
-    const report = advancedAnalytics.getReport(reportId)
-
-    if (!report) {
-      return reply.status(404).send({ error: 'Report not found' })
-    }
-
-    return {
-      success: true,
-      report,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'GET /api/admin/analytics/reports/:reportId' })
-    return reply.status(500).send({ error: 'Failed to get report' })
-  }
-})
+// Note: POST /api/admin/analytics/report and GET /api/admin/analytics/reports are already defined at lines 5742 and 5759
+// Note: GET /api/admin/analytics/report/:reportId is already defined at line 5776 (singular)
+// Removing duplicate routes here to avoid FST_ERR_DUPLICATED_ROUTE error
 
 server.get('/api/admin/analytics/reports/:reportId/export', async (request, reply) => {
   try {
