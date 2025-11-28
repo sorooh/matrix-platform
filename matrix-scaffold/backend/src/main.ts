@@ -6671,6 +6671,8 @@ async function listenWithFallback(startPort: number, attempts = 20): Promise<num
 
 const start = async () => {
   try {
+    // Log startup attempt
+    console.log('🚀 Starting Matrix Platform...')
     // Validate configuration
     const validation = validateConfig()
     if (!validation.valid) {
@@ -7269,12 +7271,15 @@ process.on('SIGINT', async () => {
   process.exit(0)
 })
 
-// Start application
+// Start application with better error handling
 start().catch((error) => {
+  console.error('❌ Fatal startup error:', error)
   logError(error as Error, { context: 'startup - unhandled' })
-  captureException(error as Error, { context: 'startup - unhandled' })
-  // Don't exit immediately, let PM2 handle it
-  setTimeout(() => {
-    process.exit(1)
-  }, 5000)
+  try {
+    captureException(error as Error, { context: 'startup - unhandled' })
+  } catch (e) {
+    // Ignore Sentry errors
+  }
+  // Exit immediately on fatal error
+  process.exit(1)
 })
