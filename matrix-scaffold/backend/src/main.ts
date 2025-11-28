@@ -7278,11 +7278,6 @@ const start = async () => {
     }
     // Don't throw - let the app continue running
   }
-  } catch (err) {
-    logError(err as Error, { context: 'startup' })
-    captureException(err as Error, { context: 'startup' })
-    process.exit(1)
-  }
 }
 
 // Graceful shutdown
