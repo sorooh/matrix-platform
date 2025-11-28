@@ -283,6 +283,42 @@ export class ComplianceSystem {
   getStatus(): ComplianceConfig {
     return this.config
   }
+
+  async getGDPRStatus(): Promise<{
+    compliant: boolean
+    lastAudit: Date
+    issues: string[]
+  }> {
+    return {
+      compliant: this.config.gdpr.enabled,
+      lastAudit: new Date(),
+      issues: []
+    }
+  }
+
+  async getISO27001Status(): Promise<{
+    compliant: boolean
+    lastAudit: Date
+    issues: string[]
+  }> {
+    return {
+      compliant: this.config.iso27001.enabled,
+      lastAudit: new Date(),
+      issues: []
+    }
+  }
+
+  async getSOC2Status(): Promise<{
+    compliant: boolean
+    lastAudit: Date
+    issues: string[]
+  }> {
+    return {
+      compliant: this.config.soc2.enabled,
+      lastAudit: new Date(),
+      issues: []
+    }
+  }
 }
 
 // Global Compliance System

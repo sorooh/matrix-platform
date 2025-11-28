@@ -6716,6 +6716,19 @@ const start = async () => {
       logInfo('✅ Redis connected')
     }
 
+    // Register health routes before starting server
+    try {
+      registerHealthRoutes(server)
+      logInfo('✅ Health routes registered')
+    } catch (error) {
+      logError(error as Error, { context: 'registerHealthRoutes' })
+      // Add basic health route as fallback
+      server.get('/health', async (request, reply) => {
+        return reply.send({ status: 'ok', timestamp: new Date().toISOString() })
+      })
+      logInfo('⚠️ Using fallback health route')
+    }
+
     // Register lifecycle integrations
     registerLifecycleHooks()
     logInfo('✅ Lifecycle hooks registered')
@@ -7234,19 +7247,6 @@ const start = async () => {
     } catch (error) {
       logError(error as Error, { context: 'Phase 11 initialization' })
       logInfo('⚠️ Phase 11 not available, continuing without it')
-    }
-
-    // Register health routes
-    try {
-      registerHealthRoutes(server)
-      logInfo('✅ Health routes registered')
-    } catch (error) {
-      logError(error as Error, { context: 'registerHealthRoutes' })
-      // Add basic health route as fallback
-      server.get('/health', async (request, reply) => {
-        return reply.send({ status: 'ok', timestamp: new Date().toISOString() })
-      })
-      logInfo('⚠️ Using fallback health route')
     }
 
     // Initialize production environment
