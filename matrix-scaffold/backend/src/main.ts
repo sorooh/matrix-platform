@@ -641,8 +641,7 @@ import { agentMemory } from './ai/agentMemory'
 import { agentEvaluator } from './ai/evaluator'
 import { AgentType } from './ai/agents'
 
-// Initialize AI agents on startup
-initializeAgents()
+// Note: initializeAgents() is called inside start() function, not here
 
 // Agents chat endpoint
 server.post('/api/agents/chat', async (request, reply) => {

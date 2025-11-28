@@ -129,4 +129,3 @@ Private - All rights reserved
 ---
 
 **Global-Ready from day one** 🌍
-
