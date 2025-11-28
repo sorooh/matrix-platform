@@ -6752,9 +6752,14 @@ const start = async () => {
       version: config.monitoring.version || '0.1.0'
     })
 
-    // Signal PM2 that app is ready
+    // Signal PM2 that app is ready (CRITICAL - must be sent after server.listen)
     if (process.send) {
-      process.send('ready')
+      try {
+        process.send('ready')
+        logInfo('✅ Sent ready signal to PM2')
+      } catch (error) {
+        logError(error as Error, { context: 'PM2 ready signal' })
+      }
     }
 
     // Initialize WebSocket Server (after server is listening)
