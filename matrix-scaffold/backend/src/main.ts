@@ -5275,19 +5275,7 @@ server.post('/api/multicloud/terraform', async (request, reply) => {
 })
 
 // Phase 7.2: Real-Time Dashboard API
-server.get('/api/dashboard/overview', async (request, reply) => {
-  try {
-    const overview = await realTimeDashboard.getOverview()
-
-    return {
-      success: true,
-      overview,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'GET /api/dashboard/overview' })
-    return reply.status(500).send({ error: 'Failed to get dashboard overview' })
-  }
-})
+// Note: GET /api/dashboard/overview is already defined at line 4832, removing duplicate
 
 server.get('/api/dashboard/metrics', async (request, reply) => {
   try {
