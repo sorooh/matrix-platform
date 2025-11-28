@@ -36,6 +36,7 @@ import { redis, checkRedisHealth, disconnectRedis } from './config/redis'
 import { logger, logError, logInfo } from './config/logger'
 import { captureException, Sentry } from './config/sentry'
 import { config, validateConfig } from './config/app'
+import { registerHealthRoutes } from './health/healthRoutes'
 
 // Initialize server with logging
 const server = Fastify({
