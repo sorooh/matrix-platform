@@ -4257,25 +4257,8 @@ server.get('/api/governance/pending', async (request, reply) => {
 })
 
 // Note: GET and POST /api/governance/policies are already defined at lines 1389 and 1363
+// Note: GET /api/governance/report is already defined at line 1464
 // Removing duplicate routes here to avoid FST_ERR_DUPLICATED_ROUTE error
-
-server.get('/api/governance/report', async (request, reply) => {
-  try {
-    const query = request.query as any
-    const startDate = query?.startDate ? new Date(query.startDate) : undefined
-    const endDate = query?.endDate ? new Date(query.endDate) : undefined
-
-    const report = await governanceLayer.generateComplianceReport(startDate, endDate)
-
-    return {
-      success: true,
-      report,
-    }
-  } catch (error: any) {
-    logError(error as Error, { context: 'GET /api/governance/report' })
-    return reply.status(500).send({ error: 'Failed to generate compliance report' })
-  }
-})
 
 // Phase 6: Advanced Features API
 server.get('/api/crawler/advanced/status', async (request, reply) => {
