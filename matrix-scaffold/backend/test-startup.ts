@@ -18,13 +18,13 @@ async function test() {
     const PORT = Number(process.env.PORT || 3000)
     await testServer.listen({ port: PORT, host: '0.0.0.0' })
     console.log(`✅ Test server listening on http://localhost:${PORT}`)
-    
+
     // Signal PM2 that app is ready
     if (process.send) {
       process.send('ready')
       console.log('✅ Sent ready signal to PM2')
     }
-    
+
     console.log('✅ Test server started successfully!')
   } catch (error) {
     console.error('❌ Test server failed:', error)
@@ -33,4 +33,3 @@ async function test() {
 }
 
 test()
-

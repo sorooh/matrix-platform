@@ -1,14 +1,13 @@
 /**
- * PM2 Test Configuration
- * Simple test to verify PM2 works
+ * Simple PM2 Configuration for Testing
  */
 
 module.exports = {
   apps: [
     {
-      name: 'test-server',
+      name: 'simple-server',
       script: 'npx',
-      args: 'tsx test-startup.ts',
+      args: 'tsx simple-server.ts',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -17,11 +16,12 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000
       },
-      error_file: './logs/test-error.log',
-      out_file: './logs/test-out.log',
+      error_file: './logs/simple-error.log',
+      out_file: './logs/simple-out.log',
       time: true,
       wait_ready: true,
       listen_timeout: 10000
     }
   ]
 }
+
