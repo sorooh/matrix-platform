@@ -7251,8 +7251,14 @@ const start = async () => {
 
     // Initialize production environment
     if (process.env.NODE_ENV === 'production') {
-      const { initializeProduction } = await import('./production/productionInit')
-      await initializeProduction(server)
+      try {
+        const { initializeProduction } = await import('./production/productionInit')
+        await initializeProduction(server)
+        logInfo('✅ Production environment initialized')
+      } catch (error) {
+        logError(error as Error, { context: 'production initialization' })
+        logInfo('⚠️ Production initialization failed, continuing anyway')
+      }
     }
 
     logInfo('✅ Matrix Platform started successfully')
