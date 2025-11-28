@@ -51,6 +51,15 @@ server.register(cors, {
   credentials: true
 })
 
+// Root landing route
+server.get('/', async (request, reply) => {
+  return {
+    status: 'ok',
+    name: 'Matrix Platform Backend',
+    health: '/health'
+  }
+})
+
 // Error handler with Sentry
 server.setErrorHandler(async (error, request, reply) => {
   logError(error, {
