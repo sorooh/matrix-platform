@@ -7237,7 +7237,17 @@ const start = async () => {
     }
 
     // Register health routes
-    registerHealthRoutes(server)
+    try {
+      registerHealthRoutes(server)
+      logInfo('✅ Health routes registered')
+    } catch (error) {
+      logError(error as Error, { context: 'registerHealthRoutes' })
+      // Add basic health route as fallback
+      server.get('/health', async (request, reply) => {
+        return reply.send({ status: 'ok', timestamp: new Date().toISOString() })
+      })
+      logInfo('⚠️ Using fallback health route')
+    }
 
     // Initialize production environment
     if (process.env.NODE_ENV === 'production') {
